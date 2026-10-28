@@ -49,7 +49,7 @@ def usage : String :=
   "[--checkpoint 0xROOT] [--json] [-v] (sync | block-number | balance ADDR | nonce ADDR | " ++
   "code ADDR | storage ADDR SLOT... | queries FILE)"
 
-def jstr (s : String) : String := (Lean.Json.str s).compress
+def jstr (s : String) : String := (Json.str s).compress
 
 def emit (json : Bool) (fields : List (String × String)) (text : String) : IO Unit := do
   if json then
@@ -70,6 +70,14 @@ def slotArg (s : String) : IO ByteArray := do
   let b ← hexArg "slot" s
   if b.size > 32 then die s!"slot: more than 32 bytes: {s}"
   pure (ByteArray.mk (List.replicate (32 - b.size) (0 : UInt8)).toArray ++ b)
+
+/-- The calls a read makes at the block `hash` (`runQuery`'s, so the batch answers them). -/
+def callsOf (hash : ByteArray) (q : List String) : IO (List (String × Json)) := do
+  match q with
+  | ["balance", a] | ["nonce", a] => return [proofCall (← addrArg a) [] hash]
+  | ["code", a] => let addr ← addrArg a; return [proofCall addr [] hash, codeCall addr hash]
+  | "storage" :: a :: slots@(_ :: _) => return [proofCall (← addrArg a) (← slots.mapM slotArg) hash]
+  | _ => return []
 
 /-- One read at the anchored block; returns the JSON fields and the text line. -/
 def runQuery (cfg : Config) (b : Anchored) (q : List String) :
@@ -98,8 +106,8 @@ def runQuery (cfg : Config) (b : Anchored) (q : List String) :
     let r ← readAccount cfg b (← addrArg a) ss
     let words := r.slots.map fun v => toHexL (beN 32 v)
     pure ([("q", jstr "storage"), ("addr", jstr a), ("block", toString blk),
-      ("slots", (Lean.Json.arr (slots.toArray.map Lean.Json.str)).compress),
-      ("value", (Lean.Json.arr (words.toArray.map Lean.Json.str)).compress)],
+      ("slots", (Json.arr (slots.toArray.map Json.str)).compress),
+      ("value", (Json.arr (words.toArray.map Json.str)).compress)],
       " ".intercalate words)
   | _ => die s!"unknown query: {" ".intercalate q}"
 
@@ -137,7 +145,7 @@ def main (argv : List String) : IO UInt32 := do
     emit args.json ([("phase", jstr "sync"), ("finalized_slot", toString s.finalized.beacon.slot),
         ("anchor_slot", toString (anchor.getD 0)), ("updates", toString sy.updates),
         ("accepted", toString sy.accepted),
-        ("refused", (Lean.Json.arr (sy.refused.reverse.toArray.map Lean.Json.str)).compress)] ++
+        ("refused", (Json.arr (sy.refused.reverse.toArray.map Json.str)).compress)] ++
         timingFields ms t)
       s!"synced: finalized slot {s.finalized.beacon.slot}, anchor slot {anchor.getD 0}, {sy.updates} updates ({sy.accepted} accepted{if sy.refused.isEmpty then "" else s!", refused: {sy.refused.reverse}"}) in {timingText ms t}"
     match args.rest with
@@ -146,10 +154,16 @@ def main (argv : List String) : IO UInt32 := do
       let lines := (← IO.FS.lines file).toList.filter fun l =>
         let l := l.trimAscii.toString
         !l.isEmpty && !l.startsWith "#"
-      let (b, ms, t) ← timed (anchoredBlock cfg s)
+      let qs := lines.map fun l => (l.trimAscii.toString.splitOn " ").filter (· ≠ "")
+      -- the block's header and every read's proofs and code, in one JSON-RPC batch
+      let (b, ms, t) ← timed do
+        let hash ← anchorHash cfg s
+        let calls ← qs.flatMapM (fun q => (try callsOf hash q catch _ => pure []))
+        prefetch cfg.execution (blockCall hash :: calls)
+        anchoredBlock cfg s
       emit args.json ([("phase", jstr "anchor"), ("block", toString b.el.number),
-          ("hash", jstr (toHex b.hash))] ++ timingFields ms t)
-        s!"anchored block {b.el.number} {toHex b.hash} in {timingText ms t}"
+          ("hash", jstr (toHex b.hash)), ("reads", toString qs.length)] ++ timingFields ms t)
+        s!"anchored block {b.el.number} {toHex b.hash}, {qs.length} reads fetched in {timingText ms t}"
       for l in lines do
         let q := (l.trimAscii.toString.splitOn " ").filter (· ≠ "")
         try
@@ -160,6 +174,8 @@ def main (argv : List String) : IO UInt32 := do
             s!"{l.trimAscii}: error: {e}"
     | q =>
       let ((fs, text), ms, t) ← timed do
+        let hash ← anchorHash cfg s
+        prefetch cfg.execution (blockCall hash :: (← callsOf hash q))
         let b ← anchoredBlock cfg s
         runQuery cfg b q
       emit args.json (fs ++ timingFields ms t) text

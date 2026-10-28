@@ -1,0 +1,866 @@
+[
+ {
+  "endpoints": "nimbus+publicnode",
+  "consensus": "http://testing.mainnet.beacon-api.nimbus.team",
+  "execution": "https://ethereum-rpc.publicnode.com",
+  "round": 0,
+  "checkpoint": "0x2933cbaba2cffe73931031e76e81d58643df0c61104c9e89ff509c9b1d07e6fe",
+  "age_periods": 0,
+  "order": [
+   "helios",
+   "leanlight"
+  ],
+  "helios": {
+   "sync_s": 0.772879962999923,
+   "cpu_s": 0.17,
+   "rss_kb": 24152,
+   "block": 26294663
+  },
+  "leanlight": {
+   "wall_s": 0.396930777000307,
+   "sync_s": 0.307,
+   "sync_net_s": 0.185,
+   "sync_verify_s": 0.12,
+   "updates": 3,
+   "refused": [],
+   "cpu_s": 0.750895,
+   "rss_kb": 28592,
+   "anchor": {
+    "phase": "anchor",
+    "block": 26294663,
+    "hash": "0x4c6f903300823c3bfbcfd789b6c85e57b3860902998bad8685ceea27b2d728c4",
+    "reads": 14,
+    "ms": 83,
+    "net_ms": 81,
+    "verify_ms": 0,
+    "requests": 1,
+    "bytes": 145435
+   },
+   "reads": [
+    {
+     "q": "block-number",
+     "value": 26294663,
+     "ms": 0,
+     "net_ms": 0,
+     "verify_ms": 0,
+     "requests": 0,
+     "bytes": 0
+    },
+    {
+     "q": "balance",
+     "addr": "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+     "block": 26294663,
+     "value": "0x502f14b6df19176f",
+     "ms": 0,
+     "net_ms": 0,
+     "verify_ms": 0,
+     "requests": 0,
+     "bytes": 0
+    },
+    {
+     "q": "nonce",
+     "addr": "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+     "block": 26294663,
+     "value": "0x1751",
+     "ms": 0,
+     "net_ms": 0,
+     "verify_ms": 0,
+     "requests": 0,
+     "bytes": 0
+    },
+    {
+     "q": "balance",
+     "addr": "0x00000000219ab540356cBB839Cbe05303d7705Fa",
+     "block": 26294663,
+     "value": "0x4cdf16e484040218f6c716",
+     "ms": 0,
+     "net_ms": 0,
+     "verify_ms": 0,
+     "requests": 0,
+     "bytes": 0
+    },
+    {
+     "q": "balance",
+     "addr": "0x28C6c06298d514Db089934071355E5743bf21d60",
+     "block": 26294663,
+     "value": "0x227d0e5bf224167997f7",
+     "ms": 0,
+     "net_ms": 0,
+     "verify_ms": 0,
+     "requests": 0,
+     "bytes": 0
+    },
+    {
+     "q": "nonce",
+     "addr": "0x28C6c06298d514Db089934071355E5743bf21d60",
+     "block": 26294663,
+     "value": "0x120714e",
+     "ms": 0,
+     "net_ms": 0,
+     "verify_ms": 0,
+     "requests": 0,
+     "bytes": 0
+    },
+    {
+     "q": "balance",
+     "addr": "0x0123456789abcdef0123456789abcdef01234567",
+     "block": 26294663,
+     "value": "0x729505f2a78d15",
+     "ms": 0,
+     "net_ms": 0,
+     "verify_ms": 0,
+     "requests": 0,
+     "bytes": 0
+    },
+    {
+     "q": "code",
+     "addr": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+     "block": 26294663,
+     "value": "0xd0a06b12ac47863b5c7be4185c2deaad1c61557033f56c7d4ea74429cbb25e23",
+     "size": 3124,
+     "ms": 0,
+     "net_ms": 0,
+     "verify_ms": 0,
+     "requests": 0,
+     "bytes": 0
+    },
+    {
+     "q": "code",
+     "addr": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+     "block": 26294663,
+     "value": "0xd80d4b7c890cb9d6a4893e6b52bc34b56b25335cb13716e0d1d31383e6b41505",
+     "size": 2186,
+     "ms": 0,
+     "net_ms": 0,
+     "verify_ms": 0,
+     "requests": 0,
+     "bytes": 0
+    },
+    {
+     "q": "code",
+     "addr": "0x00000000219ab540356cBB839Cbe05303d7705Fa",
+     "block": 26294663,
+     "value": "0x6c029a231254fadb724d63be769f75eedd66362df034a3e663252b49d062a666",
+     "size": 6358,
+     "ms": 1,
+     "net_ms": 0,
+     "verify_ms": 0,
+     "requests": 0,
+     "bytes": 0
+    },
+    {
+     "q": "storage",
+     "addr": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+     "block": 26294663,
+     "slots": [
+      "0x3a988d762a24303c37d08f1543db6143453b579691d5c20fed39629ff1334cca"
+     ],
+     "value": [
+      "0x000000000000000000000000000000000000000000000000145a277acf9c9ab6"
+     ],
+     "ms": 0,
+     "net_ms": 0,
+     "verify_ms": 0,
+     "requests": 0,
+     "bytes": 0
+    },
+    {
+     "q": "storage",
+     "addr": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+     "block": 26294663,
+     "slots": [
+      "0x7050c9e0f4ca769c69bd3a8ef740bc37934f8e2c036e5a723fd8ee048ed3f8c3"
+     ],
+     "value": [
+      "0x00000000000000000000000043506849d7c04f9138d1a2050bbf3a0c054402dd"
+     ],
+     "ms": 0,
+     "net_ms": 0,
+     "verify_ms": 0,
+     "requests": 0,
+     "bytes": 0
+    },
+    {
+     "q": "storage",
+     "addr": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+     "block": 26294663,
+     "slots": [
+      "0x07081a045c3dbf2e63b62a407ef205e7586e2629d2e2b95ff093308ca0ff3727"
+     ],
+     "value": [
+      "0x0000000000000000000000000000000000000000000000000000000c3115cbc0"
+     ],
+     "ms": 1,
+     "net_ms": 0,
+     "verify_ms": 0,
+     "requests": 0,
+     "bytes": 0
+    },
+    {
+     "q": "storage",
+     "addr": "0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640",
+     "block": 26294663,
+     "slots": [
+      "0x0"
+     ],
+     "value": [
+      "0x00014402d302d3007203080e000000000000507774a3d28bee6f7101ac9db17f"
+     ],
+     "ms": 0,
+     "net_ms": 0,
+     "verify_ms": 0,
+     "requests": 0,
+     "bytes": 0
+    }
+   ]
+  },
+  "reads": [
+   {
+    "q": "block-number",
+    "addr": null,
+    "slots": null,
+    "leanlight_ms": 0,
+    "leanlight_net_ms": 0,
+    "leanlight_verify_ms": 0,
+    "leanlight": 26294663,
+    "reference": 26294663,
+    "helios": 26294663,
+    "helios_ms": 0.8927850003601634,
+    "helios_tag": "latest"
+   },
+   {
+    "q": "balance",
+    "addr": "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+    "slots": null,
+    "leanlight_ms": 0,
+    "leanlight_net_ms": 0,
+    "leanlight_verify_ms": 0,
+    "leanlight": 5777859622599202671,
+    "reference": 5777859622599202671,
+    "helios": 5777859622599202671,
+    "helios_ms": 34.93723100018542,
+    "helios_tag": "0x1913987"
+   },
+   {
+    "q": "nonce",
+    "addr": "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+    "slots": null,
+    "leanlight_ms": 0,
+    "leanlight_net_ms": 0,
+    "leanlight_verify_ms": 0,
+    "leanlight": 5969,
+    "reference": 5969,
+    "helios": 5969,
+    "helios_ms": 0.661029999719176,
+    "helios_tag": "0x1913987"
+   },
+   {
+    "q": "balance",
+    "addr": "0x00000000219ab540356cBB839Cbe05303d7705Fa",
+    "slots": null,
+    "leanlight_ms": 0,
+    "leanlight_net_ms": 0,
+    "leanlight_verify_ms": 0,
+    "leanlight": 92931872311051914399106838,
+    "reference": 92931872311051914399106838,
+    "helios_error": "eth_getBalance: {'code': 1, 'message': 'server returned an error response: error code -32602: distance to target block exceeds maximum proof window'}",
+    "helios": 92931872311051914399106838,
+    "helios_ms": 25.093624999954045,
+    "helios_tag": "latest"
+   },
+   {
+    "q": "balance",
+    "addr": "0x28C6c06298d514Db089934071355E5743bf21d60",
+    "slots": null,
+    "leanlight_ms": 0,
+    "leanlight_net_ms": 0,
+    "leanlight_verify_ms": 0,
+    "leanlight": 162867338113557852690423,
+    "reference": 162867338113557852690423,
+    "helios": 162867338113557852690423,
+    "helios_ms": 27.36326200010808,
+    "helios_tag": "0x1913987"
+   },
+   {
+    "q": "nonce",
+    "addr": "0x28C6c06298d514Db089934071355E5743bf21d60",
+    "slots": null,
+    "leanlight_ms": 0,
+    "leanlight_net_ms": 0,
+    "leanlight_verify_ms": 0,
+    "leanlight": 18903374,
+    "reference": 18903374,
+    "helios": 18903374,
+    "helios_ms": 0.6685339999421558,
+    "helios_tag": "0x1913987"
+   },
+   {
+    "q": "balance",
+    "addr": "0x0123456789abcdef0123456789abcdef01234567",
+    "slots": null,
+    "leanlight_ms": 0,
+    "leanlight_net_ms": 0,
+    "leanlight_verify_ms": 0,
+    "leanlight": 32252000123456789,
+    "reference": 32252000123456789,
+    "helios": 32252000123456789,
+    "helios_ms": 25.700861999666813,
+    "helios_tag": "0x1913987"
+   },
+   {
+    "q": "code",
+    "addr": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+    "slots": null,
+    "leanlight_ms": 0,
+    "leanlight_net_ms": 0,
+    "leanlight_verify_ms": 0,
+    "leanlight": "0xd0a06b12ac47863b5c7be4185c2deaad1c61557033f56c7d4ea74429cbb25e23",
+    "reference": "0xd0a06b12ac47863b5c7be4185c2deaad1c61557033f56c7d4ea74429cbb25e23",
+    "helios": "0xd0a06b12ac47863b5c7be4185c2deaad1c61557033f56c7d4ea74429cbb25e23",
+    "helios_ms": 63.12015700041229,
+    "helios_tag": "0x1913987"
+   },
+   {
+    "q": "code",
+    "addr": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    "slots": null,
+    "leanlight_ms": 0,
+    "leanlight_net_ms": 0,
+    "leanlight_verify_ms": 0,
+    "leanlight": "0xd80d4b7c890cb9d6a4893e6b52bc34b56b25335cb13716e0d1d31383e6b41505",
+    "reference": "0xd80d4b7c890cb9d6a4893e6b52bc34b56b25335cb13716e0d1d31383e6b41505",
+    "helios": "0xd80d4b7c890cb9d6a4893e6b52bc34b56b25335cb13716e0d1d31383e6b41505",
+    "helios_ms": 58.023004999995464,
+    "helios_tag": "0x1913987"
+   },
+   {
+    "q": "code",
+    "addr": "0x00000000219ab540356cBB839Cbe05303d7705Fa",
+    "slots": null,
+    "leanlight_ms": 1,
+    "leanlight_net_ms": 0,
+    "leanlight_verify_ms": 0,
+    "leanlight": "0x6c029a231254fadb724d63be769f75eedd66362df034a3e663252b49d062a666",
+    "reference": "0x6c029a231254fadb724d63be769f75eedd66362df034a3e663252b49d062a666",
+    "helios": "0x6c029a231254fadb724d63be769f75eedd66362df034a3e663252b49d062a666",
+    "helios_ms": 69.88971700002367,
+    "helios_tag": "0x1913987"
+   },
+   {
+    "q": "storage",
+    "addr": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+    "slots": [
+     "0x3a988d762a24303c37d08f1543db6143453b579691d5c20fed39629ff1334cca"
+    ],
+    "leanlight_ms": 0,
+    "leanlight_net_ms": 0,
+    "leanlight_verify_ms": 0,
+    "leanlight": [
+     1466528037085158070
+    ],
+    "reference": [
+     1466528037085158070
+    ],
+    "helios": [
+     1466528037085158070
+    ],
+    "helios_ms": 25.436797000111255,
+    "helios_tag": "0x1913987"
+   },
+   {
+    "q": "storage",
+    "addr": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    "slots": [
+     "0x7050c9e0f4ca769c69bd3a8ef740bc37934f8e2c036e5a723fd8ee048ed3f8c3"
+    ],
+    "leanlight_ms": 0,
+    "leanlight_net_ms": 0,
+    "leanlight_verify_ms": 0,
+    "leanlight": [
+     384295526066211940175725022778205173214649516765
+    ],
+    "reference": [
+     384295526066211940175725022778205173214649516765
+    ],
+    "helios": [
+     384295526066211940175725022778205173214649516765
+    ],
+    "helios_ms": 29.521769999973912,
+    "helios_tag": "0x1913987"
+   },
+   {
+    "q": "storage",
+    "addr": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    "slots": [
+     "0x07081a045c3dbf2e63b62a407ef205e7586e2629d2e2b95ff093308ca0ff3727"
+    ],
+    "leanlight_ms": 1,
+    "leanlight_net_ms": 0,
+    "leanlight_verify_ms": 0,
+    "leanlight": [
+     52363119552
+    ],
+    "reference": [
+     52363119552
+    ],
+    "helios": [
+     52363119552
+    ],
+    "helios_ms": 32.82341300018743,
+    "helios_tag": "0x1913987"
+   },
+   {
+    "q": "storage",
+    "addr": "0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640",
+    "slots": [
+     "0x0"
+    ],
+    "leanlight_ms": 0,
+    "leanlight_net_ms": 0,
+    "leanlight_verify_ms": 0,
+    "leanlight": [
+     2236241958308838035536316532998418261465522074658369130683463082427920767
+    ],
+    "reference": [
+     2236241958308838035536316532998418261465522074658369130683463082427920767
+    ],
+    "helios": [
+     2236241958308838035536316532998418261465522074658369130683463082427920767
+    ],
+    "helios_ms": 26.064674999815907,
+    "helios_tag": "0x1913987"
+   }
+  ]
+ },
+ {
+  "endpoints": "nimbus+publicnode",
+  "consensus": "http://testing.mainnet.beacon-api.nimbus.team",
+  "execution": "https://ethereum-rpc.publicnode.com",
+  "round": 1,
+  "checkpoint": "0x2933cbaba2cffe73931031e76e81d58643df0c61104c9e89ff509c9b1d07e6fe",
+  "age_periods": 0,
+  "order": [
+   "leanlight",
+   "helios"
+  ],
+  "leanlight": {
+   "wall_s": 0.7488364089999777,
+   "sync_s": 0.335,
+   "sync_net_s": 0.193,
+   "sync_verify_s": 0.141,
+   "updates": 3,
+   "refused": [],
+   "cpu_s": 0.7989559999999999,
+   "rss_kb": 66704,
+   "anchor": {
+    "phase": "anchor",
+    "block": 26294663,
+    "hash": "0x4c6f903300823c3bfbcfd789b6c85e57b3860902998bad8685ceea27b2d728c4",
+    "reads": 14,
+    "ms": 404,
+    "net_ms": 154,
+    "verify_ms": 0,
+    "requests": 2,
+    "bytes": 146586
+   },
+   "reads": [
+    {
+     "q": "block-number",
+     "value": 26294663,
+     "ms": 0,
+     "net_ms": 0,
+     "verify_ms": 0,
+     "requests": 0,
+     "bytes": 0
+    },
+    {
+     "q": "balance",
+     "addr": "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+     "block": 26294663,
+     "value": "0x502f14b6df19176f",
+     "ms": 1,
+     "net_ms": 0,
+     "verify_ms": 0,
+     "requests": 0,
+     "bytes": 0
+    },
+    {
+     "q": "nonce",
+     "addr": "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+     "block": 26294663,
+     "value": "0x1751",
+     "ms": 0,
+     "net_ms": 0,
+     "verify_ms": 0,
+     "requests": 0,
+     "bytes": 0
+    },
+    {
+     "q": "balance",
+     "addr": "0x00000000219ab540356cBB839Cbe05303d7705Fa",
+     "block": 26294663,
+     "value": "0x4cdf16e484040218f6c716",
+     "ms": 0,
+     "net_ms": 0,
+     "verify_ms": 0,
+     "requests": 0,
+     "bytes": 0
+    },
+    {
+     "q": "balance",
+     "addr": "0x28C6c06298d514Db089934071355E5743bf21d60",
+     "block": 26294663,
+     "value": "0x227d0e5bf224167997f7",
+     "ms": 0,
+     "net_ms": 0,
+     "verify_ms": 0,
+     "requests": 0,
+     "bytes": 0
+    },
+    {
+     "q": "nonce",
+     "addr": "0x28C6c06298d514Db089934071355E5743bf21d60",
+     "block": 26294663,
+     "value": "0x120714e",
+     "ms": 1,
+     "net_ms": 0,
+     "verify_ms": 0,
+     "requests": 0,
+     "bytes": 0
+    },
+    {
+     "q": "balance",
+     "addr": "0x0123456789abcdef0123456789abcdef01234567",
+     "block": 26294663,
+     "value": "0x729505f2a78d15",
+     "ms": 0,
+     "net_ms": 0,
+     "verify_ms": 0,
+     "requests": 0,
+     "bytes": 0
+    },
+    {
+     "q": "code",
+     "addr": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+     "block": 26294663,
+     "value": "0xd0a06b12ac47863b5c7be4185c2deaad1c61557033f56c7d4ea74429cbb25e23",
+     "size": 3124,
+     "ms": 1,
+     "net_ms": 0,
+     "verify_ms": 0,
+     "requests": 0,
+     "bytes": 0
+    },
+    {
+     "q": "code",
+     "addr": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+     "block": 26294663,
+     "value": "0xd80d4b7c890cb9d6a4893e6b52bc34b56b25335cb13716e0d1d31383e6b41505",
+     "size": 2186,
+     "ms": 0,
+     "net_ms": 0,
+     "verify_ms": 0,
+     "requests": 0,
+     "bytes": 0
+    },
+    {
+     "q": "code",
+     "addr": "0x00000000219ab540356cBB839Cbe05303d7705Fa",
+     "block": 26294663,
+     "value": "0x6c029a231254fadb724d63be769f75eedd66362df034a3e663252b49d062a666",
+     "size": 6358,
+     "ms": 1,
+     "net_ms": 0,
+     "verify_ms": 0,
+     "requests": 0,
+     "bytes": 0
+    },
+    {
+     "q": "storage",
+     "addr": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+     "block": 26294663,
+     "slots": [
+      "0x3a988d762a24303c37d08f1543db6143453b579691d5c20fed39629ff1334cca"
+     ],
+     "value": [
+      "0x000000000000000000000000000000000000000000000000145a277acf9c9ab6"
+     ],
+     "ms": 0,
+     "net_ms": 0,
+     "verify_ms": 0,
+     "requests": 0,
+     "bytes": 0
+    },
+    {
+     "q": "storage",
+     "addr": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+     "block": 26294663,
+     "slots": [
+      "0x7050c9e0f4ca769c69bd3a8ef740bc37934f8e2c036e5a723fd8ee048ed3f8c3"
+     ],
+     "value": [
+      "0x00000000000000000000000043506849d7c04f9138d1a2050bbf3a0c054402dd"
+     ],
+     "ms": 1,
+     "net_ms": 0,
+     "verify_ms": 0,
+     "requests": 0,
+     "bytes": 0
+    },
+    {
+     "q": "storage",
+     "addr": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+     "block": 26294663,
+     "slots": [
+      "0x07081a045c3dbf2e63b62a407ef205e7586e2629d2e2b95ff093308ca0ff3727"
+     ],
+     "value": [
+      "0x0000000000000000000000000000000000000000000000000000000c3115cbc0"
+     ],
+     "ms": 0,
+     "net_ms": 0,
+     "verify_ms": 0,
+     "requests": 0,
+     "bytes": 0
+    },
+    {
+     "q": "storage",
+     "addr": "0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640",
+     "block": 26294663,
+     "slots": [
+      "0x0"
+     ],
+     "value": [
+      "0x00014402d302d3007203080e000000000000507774a3d28bee6f7101ac9db17f"
+     ],
+     "ms": 1,
+     "net_ms": 0,
+     "verify_ms": 0,
+     "requests": 0,
+     "bytes": 0
+    }
+   ]
+  },
+  "helios": {
+   "sync_s": 0.7755795450002552,
+   "cpu_s": 0.15,
+   "rss_kb": 24392,
+   "block": 26294663
+  },
+  "reads": [
+   {
+    "q": "block-number",
+    "addr": null,
+    "slots": null,
+    "leanlight_ms": 0,
+    "leanlight_net_ms": 0,
+    "leanlight_verify_ms": 0,
+    "leanlight": 26294663,
+    "reference": 26294663,
+    "helios": 26294663,
+    "helios_ms": 0.45322999994823476,
+    "helios_tag": "latest"
+   },
+   {
+    "q": "balance",
+    "addr": "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+    "slots": null,
+    "leanlight_ms": 1,
+    "leanlight_net_ms": 0,
+    "leanlight_verify_ms": 0,
+    "leanlight": 5777859622599202671,
+    "reference": 5777859622599202671,
+    "helios": 5777859622599202671,
+    "helios_ms": 31.25786300006439,
+    "helios_tag": "0x1913987"
+   },
+   {
+    "q": "nonce",
+    "addr": "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+    "slots": null,
+    "leanlight_ms": 0,
+    "leanlight_net_ms": 0,
+    "leanlight_verify_ms": 0,
+    "leanlight": 5969,
+    "reference": 5969,
+    "helios": 5969,
+    "helios_ms": 0.620854999851872,
+    "helios_tag": "0x1913987"
+   },
+   {
+    "q": "balance",
+    "addr": "0x00000000219ab540356cBB839Cbe05303d7705Fa",
+    "slots": null,
+    "leanlight_ms": 0,
+    "leanlight_net_ms": 0,
+    "leanlight_verify_ms": 0,
+    "leanlight": 92931872311051914399106838,
+    "reference": 92931872311051914399106838,
+    "helios_error": "eth_getBalance: {'code': 1, 'message': 'server returned an error response: error code -32602: distance to target block exceeds maximum proof window'}",
+    "helios": 92931872311051914399106838,
+    "helios_ms": 32.168971999908536,
+    "helios_tag": "latest"
+   },
+   {
+    "q": "balance",
+    "addr": "0x28C6c06298d514Db089934071355E5743bf21d60",
+    "slots": null,
+    "leanlight_ms": 0,
+    "leanlight_net_ms": 0,
+    "leanlight_verify_ms": 0,
+    "leanlight": 162867338113557852690423,
+    "reference": 162867338113557852690423,
+    "helios": 162867338113557852690423,
+    "helios_ms": 26.171282000177598,
+    "helios_tag": "0x1913987"
+   },
+   {
+    "q": "nonce",
+    "addr": "0x28C6c06298d514Db089934071355E5743bf21d60",
+    "slots": null,
+    "leanlight_ms": 1,
+    "leanlight_net_ms": 0,
+    "leanlight_verify_ms": 0,
+    "leanlight": 18903374,
+    "reference": 18903374,
+    "helios": 18903374,
+    "helios_ms": 0.7302399999389309,
+    "helios_tag": "0x1913987"
+   },
+   {
+    "q": "balance",
+    "addr": "0x0123456789abcdef0123456789abcdef01234567",
+    "slots": null,
+    "leanlight_ms": 0,
+    "leanlight_net_ms": 0,
+    "leanlight_verify_ms": 0,
+    "leanlight": 32252000123456789,
+    "reference": 32252000123456789,
+    "helios": 32252000123456789,
+    "helios_ms": 30.548510000244278,
+    "helios_tag": "0x1913987"
+   },
+   {
+    "q": "code",
+    "addr": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+    "slots": null,
+    "leanlight_ms": 1,
+    "leanlight_net_ms": 0,
+    "leanlight_verify_ms": 0,
+    "leanlight": "0xd0a06b12ac47863b5c7be4185c2deaad1c61557033f56c7d4ea74429cbb25e23",
+    "reference": "0xd0a06b12ac47863b5c7be4185c2deaad1c61557033f56c7d4ea74429cbb25e23",
+    "helios_error": "eth_getCode: {'code': 1, 'message': 'server returned an error response: error code -32602: distance to target block exceeds maximum proof window'}"
+   },
+   {
+    "q": "code",
+    "addr": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    "slots": null,
+    "leanlight_ms": 0,
+    "leanlight_net_ms": 0,
+    "leanlight_verify_ms": 0,
+    "leanlight": "0xd80d4b7c890cb9d6a4893e6b52bc34b56b25335cb13716e0d1d31383e6b41505",
+    "reference": "0xd80d4b7c890cb9d6a4893e6b52bc34b56b25335cb13716e0d1d31383e6b41505",
+    "helios": "0xd80d4b7c890cb9d6a4893e6b52bc34b56b25335cb13716e0d1d31383e6b41505",
+    "helios_ms": 69.15418399967166,
+    "helios_tag": "0x1913987"
+   },
+   {
+    "q": "code",
+    "addr": "0x00000000219ab540356cBB839Cbe05303d7705Fa",
+    "slots": null,
+    "leanlight_ms": 1,
+    "leanlight_net_ms": 0,
+    "leanlight_verify_ms": 0,
+    "leanlight": "0x6c029a231254fadb724d63be769f75eedd66362df034a3e663252b49d062a666",
+    "reference": "0x6c029a231254fadb724d63be769f75eedd66362df034a3e663252b49d062a666",
+    "helios": "0x6c029a231254fadb724d63be769f75eedd66362df034a3e663252b49d062a666",
+    "helios_ms": 68.84550499989928,
+    "helios_tag": "0x1913987"
+   },
+   {
+    "q": "storage",
+    "addr": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+    "slots": [
+     "0x3a988d762a24303c37d08f1543db6143453b579691d5c20fed39629ff1334cca"
+    ],
+    "leanlight_ms": 0,
+    "leanlight_net_ms": 0,
+    "leanlight_verify_ms": 0,
+    "leanlight": [
+     1466528037085158070
+    ],
+    "reference": [
+     1466528037085158070
+    ],
+    "helios": [
+     1466528037085158070
+    ],
+    "helios_ms": 30.245010999806254,
+    "helios_tag": "0x1913987"
+   },
+   {
+    "q": "storage",
+    "addr": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    "slots": [
+     "0x7050c9e0f4ca769c69bd3a8ef740bc37934f8e2c036e5a723fd8ee048ed3f8c3"
+    ],
+    "leanlight_ms": 1,
+    "leanlight_net_ms": 0,
+    "leanlight_verify_ms": 0,
+    "leanlight": [
+     384295526066211940175725022778205173214649516765
+    ],
+    "reference": [
+     384295526066211940175725022778205173214649516765
+    ],
+    "helios": [
+     384295526066211940175725022778205173214649516765
+    ],
+    "helios_ms": 33.50264100026834,
+    "helios_tag": "0x1913987"
+   },
+   {
+    "q": "storage",
+    "addr": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    "slots": [
+     "0x07081a045c3dbf2e63b62a407ef205e7586e2629d2e2b95ff093308ca0ff3727"
+    ],
+    "leanlight_ms": 0,
+    "leanlight_net_ms": 0,
+    "leanlight_verify_ms": 0,
+    "leanlight": [
+     52363119552
+    ],
+    "reference": [
+     52363119552
+    ],
+    "helios": [
+     52363119552
+    ],
+    "helios_ms": 29.825123999671632,
+    "helios_tag": "0x1913987"
+   },
+   {
+    "q": "storage",
+    "addr": "0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640",
+    "slots": [
+     "0x0"
+    ],
+    "leanlight_ms": 1,
+    "leanlight_net_ms": 0,
+    "leanlight_verify_ms": 0,
+    "leanlight": [
+     2236241958308838035536316532998418261465522074658369130683463082427920767
+    ],
+    "reference": [
+     2236241958308838035536316532998418261465522074658369130683463082427920767
+    ],
+    "helios": [
+     2236241958308838035536316532998418261465522074658369130683463082427920767
+    ],
+    "helios_ms": 32.240294000075664,
+    "helios_tag": "0x1913987"
+   }
+  ]
+ }
+]

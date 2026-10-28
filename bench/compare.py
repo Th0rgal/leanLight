@@ -207,23 +207,30 @@ def compare_reads(ll, helios_url, el):
 
 
 def per_read(results):
-    """Median per-read latency, leanlight (one process, curl per request) and helios (JSON-RPC)."""
+    """The whole read set: leanlight (one JSON-RPC batch for the block header and every proof and
+    code, then the checks) against Helios asked the same reads one call after the other, and as
+    one JSON-RPC batch is not measured: asked after these reads, Helios answers it from its cache."""
     import statistics
-    by = {}
+    ll, hseq, hbatch, n = [], [], [], []
     for r in results:
-        for x in r.get("reads", []):
-            if x["q"] == "block-number" or "leanlight_error" in x:
-                continue
-            d = by.setdefault(x["q"], {"leanlight": [], "helios": []})
-            d["leanlight"].append(x["leanlight_ms"])
-            if "helios_ms" in x:
-                d["helios"].append(x["helios_ms"])
+        reads = r.get("reads", [])
+        l = r.get("leanlight", {})
+        if not reads or "anchor" not in l:
+            continue
+        ll.append(l["anchor"]["ms"] + sum(x.get("leanlight_ms") or 0 for x in reads))
+        hseq.append(sum(x.get("helios_ms", 0) for x in reads))
+        if "ms" in r.get("helios_batch", {}):
+            hbatch.append(r["helios_batch"]["ms"])
+        n.append(len(reads))
+    if not ll:
+        return
+    med = lambda xs: f"{statistics.median(xs):.0f}" if xs else "-"
     print()
-    print("| read | leanlight median ms | helios median ms | samples |")
-    print("|---|---|---|---|")
-    for q, d in by.items():
-        h = f"{statistics.median(d['helios']):.0f}" if d["helios"] else "-"
-        print(f"| {q} | {statistics.median(d['leanlight']):.0f} | {h} | {len(d['leanlight'])} |")
+    print(f"Read set of {max(n)} reads, median over {len(ll)} rounds:")
+    print()
+    print("| leanlight (one batch + checks) ms | helios, one call each ms |")
+    print("|---|---|")
+    print(f"| {med(ll)} | {med(hseq)} |")
 
 
 def main():

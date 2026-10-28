@@ -26,5 +26,21 @@ def main (args : List String) : IO UInt32 := do
   let pts ← timeIt "decompress 512 (sqrt)" 1 (fun _ => keys.filterMap g1Decompress?) (fun a => toString a.size)
   let _ ← timeIt "subgroup [r]P x512" 1 (fun _ => pts.all (·.inSubgroup)) toString
   let _ ← timeIt "subgroup Scott x512" 1 (fun _ => pts.all (·.inSubgroupScott)) toString
-  let _ ← timeIt "Committee.ofSync whole" 1 (fun _ => Store.Committee.ofSync Forks.mainnetPreset b.committee) (fun o => toString o.isSome)
+  let some com ← timeIt "Committee.ofSync whole" 1 (fun _ => Store.Committee.ofSync Forks.mainnetPreset b.committee) (fun o => toString o.isSome)
+    | IO.println "committee refused"; return 1
+  -- a finality update of the same period, signed by that committee
+  let fs ← IO.FS.readBinFile (args.getD 1 "vectors/bench-finality.ssz")
+  let some u := Codec.mainnetUpdate .finality .fulu fs | IO.println "update does not decode"; return 1
+  let c := Forks.mainnet
+  let some v := c.signatureVersion u.signatureSlot | return 1
+  let msg := Forks.signingRoot u.attested.root (Forks.computeDomain Forks.domainSyncCommittee v c.genesisValidatorsRoot)
+  let parts ← timeIt "participants" 1 (fun _ => Store.participants com.keys u.aggregate.bits) (fun a => toString a.size)
+  let _ ← timeIt "aggregate (G1 adds)" 1 (fun _ => aggregate? parts) (fun o => toString o.isSome)
+  let _ ← timeIt "sigValidate? (G2 decompress + [r]Q)" 1 (fun _ => sigValidate? u.aggregate.signature) (fun o => toString o.isSome)
+  let _ ← timeIt "g2Decompress? only" 1 (fun _ => g2Decompress? u.aggregate.signature) (fun o => toString o.isSome)
+  let some h ← timeIt "hashToG2" 1 (fun _ => H2C.hashToG2? msg ethDst) (fun o => toString o.isSome) | return 1
+  let some s := sigValidate? u.aggregate.signature | return 1
+  let some agg := aggregate? parts | return 1
+  let _ ← timeIt "pairingCheck (2 Miller loops + final exp)" 1 (fun _ => pairingCheck [(g1Gen, s), (agg.neg, h)]) toString
+  let _ ← timeIt "verifySignature whole" 1 (fun _ => Store.verifySignature c com u) toString
   return 0

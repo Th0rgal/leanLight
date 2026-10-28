@@ -1,4 +1,5 @@
-import Lean.Data.Json
+import LeanLightCli.Json
+import Std.Data.HashMap
 
 /-!
 # Hex, JSON and `curl`
@@ -146,17 +147,17 @@ def getSsz (url : String) : IO (Except String (ByteArray × Option String)) := d
     return (.ok (bs, version), bs.size)
 
 /-- A GET of JSON. -/
-def getJson (url : String) : IO (Except String Lean.Json) := do
+def getJson (url : String) : IO (Except String Json) := do
   log s!"GET {url}"
   timeNet do
     let out ← IO.Process.output { cmd := "curl", args := #["-sS", "--max-time", "60",
       "-H", "Accept: application/json", url] }
     if out.exitCode != 0 then return (.error s!"curl: {out.stderr.trimAscii}", 0)
-    return (Lean.Json.parse out.stdout, out.stdout.utf8ByteSize)
+    return (Json.parse out.stdout, out.stdout.utf8ByteSize)
 
 /-- One JSON-RPC call: its `result`, or the error. -/
-def rpcOnce (url method : String) (params : Lean.Json) : IO (Except String Lean.Json) := do
-  let req := Lean.Json.mkObj [("jsonrpc", "2.0"), ("id", (1 : Nat)), ("method", method),
+def rpcOnce (url method : String) (params : Json) : IO (Except String Json) := do
+  let req := Json.mkObj [("jsonrpc", "2.0"), ("id", (1 : Nat)), ("method", method),
     ("params", params)]
   log s!"POST {url} {method}"
   timeNet do
@@ -166,7 +167,7 @@ def rpcOnce (url method : String) (params : Lean.Json) : IO (Except String Lean.
       "-H", "Content-Type: application/json", "--data-binary", "@" ++ reqFile.toString, url] }
     if out.exitCode != 0 then return (.error s!"curl: {out.stderr.trimAscii}", 0)
     let size := out.stdout.utf8ByteSize
-    match Lean.Json.parse out.stdout with
+    match Json.parse out.stdout with
     | .error e => return (.error s!"{method}: not JSON: {e}: {(out.stdout.take 200).toString}", size)
     | .ok j =>
       match j.getObjVal? "result" with
@@ -175,7 +176,7 @@ def rpcOnce (url method : String) (params : Lean.Json) : IO (Except String Lean.
 
 /-- A JSON-RPC call, asked again up to twice after an error, 250 ms apart: a public endpoint is
 a pool of nodes, and one behind the others refuses a block it does not hold yet. -/
-def rpc (url method : String) (params : Lean.Json) : IO (Except String Lean.Json) := do
+def rpc (url method : String) (params : Json) : IO (Except String Json) := do
   let mut last := Except.error "no attempt"
   for i in [0:3] do
     if i > 0 then IO.sleep 250
@@ -184,8 +185,90 @@ def rpc (url method : String) (params : Lean.Json) : IO (Except String Lean.Json
     log s!"  {method}: attempt {i + 1} failed"
   return last
 
+/-- The `Eth-Consensus-Version` of a response's headers, lower case. -/
+def consensusVersion (hs : String) : Option String :=
+  hs.splitOn "\n" |>.findSome? fun l =>
+    let l := l.trimAscii.toString
+    if l.toLower.startsWith "eth-consensus-version:" then
+      some ((l.drop "eth-consensus-version:".length).trimAscii.toString.toLower)
+    else none
+
+/-- Several SSZ GETs in one `curl`, transferred in parallel over shared connections: each body
+and its `Eth-Consensus-Version`, in the order asked. -/
+def getSszMany (urls : Array String) : IO (Array (Except String (ByteArray × Option String))) := do
+  let d ← scratchDir
+  let mut args : Array String := #["-sS", "--max-time", "60", "--parallel", "--parallel-immediate",
+    "-H", "Accept: application/octet-stream",
+    "-w", "%{urlnum} %{http_code} %header{eth-consensus-version}\n"]
+  for i in [0:urls.size] do
+    log s!"GET {urls[i]!} (ssz, batch {i})"
+    args := args ++ #["-o", (d / s!"body{i}").toString, urls[i]!]
+  timeNet do
+    let out ← IO.Process.output { cmd := "curl", args }
+    let codes : Std.HashMap Nat (String × Option String) :=
+      out.stdout.splitOn "\n" |>.foldl (init := {}) fun m l =>
+        match l.trimAscii.toString.splitOn " " with
+        | [n, c] => m.insert n.toNat! (c, none)
+        | [n, c, v] => m.insert n.toNat! (c, some v.toLower)
+        | _ => m
+    let mut res := #[]
+    let mut size := 0
+    for i in [0:urls.size] do
+      match codes[i]? with
+      | some ("200", v) =>
+        let bs ← IO.FS.readBinFile (d / s!"body{i}")
+        size := size + bs.size
+        res := res.push (.ok (bs, v))
+      | some (c, _) =>
+        let b ← (try IO.FS.readFile (d / s!"body{i}") catch _ => pure "")
+        res := res.push (.error s!"HTTP {c}: {(b.take 200).toString}")
+      | none => res := res.push (.error s!"curl: {out.stderr.trimAscii}")
+    return (res, size)
+
+/-- A JSON-RPC batch: each call's `result` or error, in the order asked. One HTTP request. -/
+def rpcBatchOnce (url : String) (calls : Array (String × Json)) :
+    IO (Except String (Array (Except String Json))) := do
+  let req := Json.arr <| calls.mapIdx fun i (m, ps) => Json.mkObj
+    [("jsonrpc", "2.0"), ("id", (i : Nat)), ("method", m), ("params", ps)]
+  log s!"POST {url} batch of {calls.size}: {calls.map (·.1)}"
+  timeNet do
+    let reqFile := (← scratchDir) / "batch.json"
+    IO.FS.writeFile reqFile req.compress
+    let out ← IO.Process.output { cmd := "curl", args := #["-sS", "--max-time", "60", "-X", "POST",
+      "-H", "Content-Type: application/json", "--data-binary", "@" ++ reqFile.toString, url] }
+    if out.exitCode != 0 then return (.error s!"curl: {out.stderr.trimAscii}", 0)
+    let size := out.stdout.utf8ByteSize
+    match Json.parse out.stdout with
+    | .error e => return (.error s!"batch: not JSON: {e}", size)
+    | .ok (.arr items) =>
+      let mut res : Array (Except String Json) := Array.replicate calls.size (.error "no answer")
+      for it in items do
+        match (it.getObjVal? "id" >>= Json.getNat?) with
+        | .ok i =>
+          if i < calls.size then
+            res := res.set! i <| match it.getObjVal? "result" with
+              | .ok r => .ok r
+              | .error _ => .error s!"{calls[i]!.1}: {(it.getObjValD "error").compress}"
+        | .error _ => pure ()
+      return (.ok res, size)
+    | .ok j => return (.error s!"batch: not an array: {(j.compress.take 200).toString}", size)
+
+/-- A JSON-RPC batch, asked again up to twice for the calls that failed (a public endpoint is a
+pool of nodes, one of which may not hold the block yet). -/
+def rpcBatch (url : String) (calls : Array (String × Json)) :
+    IO (Array (Except String Json)) := do
+  let mut res : Array (Except String Json) := Array.replicate calls.size (.error "no attempt")
+  for attempt in [0:3] do
+    let todo := (List.range calls.size).filter fun i => !(res[i]! matches .ok _)
+    if todo.isEmpty then break
+    if attempt > 0 then IO.sleep 250
+    match ← rpcBatchOnce url (todo.toArray.map (calls[·]!)) with
+    | .error e => for i in todo do res := res.set! i (.error e)
+    | .ok rs => for (i, r) in todo.zip rs.toList do res := res.set! i r
+  return res
+
 /-- A string field. -/
-def str (j : Lean.Json) (k : String) : Except String String := do
+def str (j : Json) (k : String) : Except String String := do
   (← j.getObjVal? k).getStr?
 
 end LeanLight.Cli

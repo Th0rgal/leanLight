@@ -75,9 +75,8 @@ def checkpointOf (cfg : Config) : IO ByteArray := do
   | some r => IO.eprintln s!"checkpoint (the node's finalized root, unchecked): {root}"; return r
   | none => die "finalized header: bad root"
 
-def bootstrap (cfg : Config) (root : ByteArray) : IO Store.Store := do
-  let (bs, version) ← orDie "bootstrap"
-    (← getSsz s!"{cfg.consensus}/eth/v1/beacon/light_client/bootstrap/{toHex root}")
+def bootstrapOf (cfg : Config) (root : ByteArray) (bs : ByteArray) (version : Option String) :
+    IO Store.Store := do
   let some fork := version.bind forkOfName | die s!"bootstrap: fork {version} unknown"
   let now ← nowMs
   timeVerify do
@@ -105,29 +104,88 @@ def receive (cfg : Config) (sy : Synced) (k : Codec.Kind) (tag : Codec.Tag) (bs 
 def currentPeriod (c : Chain) : IO Nat := do
   return c.periodAt (c.slotOf (← nowMs))
 
-/-- Bootstrap, then updates up to the clock's period, then the finality and optimistic updates. -/
+/-- Updates from period `p` on, `count` of them, through the store. -/
+def updatesFrom (cfg : Config) (sy : Synced) (bs : ByteArray) : IO Synced := do
+  let some chunks := Ssz.parseUpdates bs | die "updates: bad framing"
+  let mut sy := sy
+  for ch in chunks do
+    sy ← receive cfg sy .update (.digest ch.digest) ch.ssz
+  return sy
+
+/-- Bootstrap, then updates up to the clock's period, then the finality and optimistic updates.
+The bootstrap, the clock period's update and the finality and optimistic updates are fetched
+together, in one round trip (`getSszMany`); older periods' updates, when the checkpoint is older
+than the clock's period, after the bootstrap. The store takes them in the specification's order. -/
 def sync (cfg : Config) : IO Synced := do
   let root ← checkpointOf cfg
-  let mut sy : Synced := { store := ← bootstrap cfg root }
   let cur ← currentPeriod cfg.chain
+  let lc := s!"{cfg.consensus}/eth/v1/beacon/light_client"
+  let got ← getSszMany #[s!"{lc}/bootstrap/{toHex root}", s!"{lc}/updates?start_period={cur}&count=1",
+    s!"{lc}/finality_update", s!"{lc}/optimistic_update"]
+  let (bbs, bv) ← orDie "bootstrap" got[0]!
+  let mut sy : Synced := { store := ← bootstrapOf cfg root bbs bv }
+  -- periods before the clock's
   let mut guard := 0
-  while Store.period cfg.chain sy.store < cur || sy.store.next.isNone do
+  while Store.period cfg.chain sy.store < cur do
     guard := guard + 1
     if guard > 64 then break
     let p := Store.period cfg.chain sy.store
-    let count := min 128 (cur - p + 1)
     let (bs, _) ← orDie "updates" (← getSsz
-      s!"{cfg.consensus}/eth/v1/beacon/light_client/updates?start_period={p}&count={count}")
-    let some chunks := Ssz.parseUpdates bs | die "updates: bad framing"
+      s!"{lc}/updates?start_period={p}&count={min 128 (cur - p)}")
     let before := (Store.period cfg.chain sy.store, sy.store.next.isSome)
-    for ch in chunks do
-      sy ← receive cfg sy .update (.digest ch.digest) ch.ssz
+    sy ← updatesFrom cfg sy bs
     if (Store.period cfg.chain sy.store, sy.store.next.isSome) == before then break
-  for (k, path) in [(Codec.Kind.finality, "finality_update"), (.optimistic, "optimistic_update")] do
-    let (bs, version) ← orDie path (← getSsz s!"{cfg.consensus}/eth/v1/beacon/light_client/{path}")
+  -- the clock's period, for its next committee
+  if sy.store.next.isNone then
+    match got[1]! with
+    | .ok (bs, _) => sy ← updatesFrom cfg sy bs
+    | .error e => log s!"updates for period {cur}: {e}"
+  for (k, path, i) in [(Codec.Kind.finality, "finality_update", 2), (.optimistic, "optimistic_update", 3)] do
+    let (bs, version) ← orDie path got[i]!
     let some fork := version.bind forkOfName | die s!"{path}: fork {version} unknown"
     sy ← receive cfg sy k (.name fork) bs
   return sy
+
+/-! ## The RPC answers a batch prefetched -/
+
+/-- Answers prefetched by one JSON-RPC batch (`prefetch`), by method and parameters. Only a cache
+of the endpoint's words: each is checked where it is read, as a direct answer would be. -/
+initialize rpcCache : IO.Ref (Std.HashMap String Json) ← IO.mkRef {}
+
+def callKey (method : String) (params : Json) : String := method ++ params.compress
+
+/-- A call, answered from the prefetched batch when it holds it. -/
+def rpcC (url method : String) (params : Json) : IO (Except String Json) := do
+  match (← rpcCache.get)[callKey method params]? with
+  | some r => return .ok r
+  | none => rpc url method params
+
+/-- The calls, deduplicated, in one JSON-RPC batch; their answers kept for `rpcC`. -/
+def prefetch (url : String) (calls : List (String × Json)) : IO Unit := do
+  let calls := calls.foldl (fun acc c =>
+    if acc.any (fun d => callKey d.1 d.2 == callKey c.1 c.2) then acc else acc.push c) #[]
+  if calls.isEmpty then return
+  let rs ← rpcBatch url calls
+  for (c, r) in calls.toList.zip rs.toList do
+    if let .ok j := r then rpcCache.modify (·.insert (callKey c.1 c.2) j)
+
+/-- `eth_getBlockByHash` of the anchored block. -/
+def blockCall (hash : ByteArray) : String × Json :=
+  ("eth_getBlockByHash", .arr #[toHex hash, false])
+
+/-- `eth_getProof` of an account and slots at a block. -/
+def proofCall (addr : ByteArray) (slots : List ByteArray) (hash : ByteArray) : String × Json :=
+  ("eth_getProof", .arr #[toHex addr, .arr (slots.toArray.map fun k => Json.str (toHex k)),
+    toHex hash])
+
+/-- `eth_getCode` of an account at a block. -/
+def codeCall (addr : ByteArray) (hash : ByteArray) : String × Json :=
+  ("eth_getCode", .arr #[toHex addr, toHex hash])
+
+/-- The execution block hash the store's anchor names, if it anchors. -/
+def anchorHash (cfg : Config) (s : Store.Store) : IO ByteArray := do
+  let some a := Store.anchored cfg.chain s (← nowMs) | die "no anchor: the store is halted or too old"
+  return a.header.elHash
 
 /-! ## Reads at the anchor -/
 
@@ -143,7 +201,7 @@ def headerFields : List (String × Bool) :=
 
 /-- The RLP of a block's header, rebuilt from `eth_getBlockByHash`'s fields. Untrusted:
 `Anchor.bind` checks it hashes to the anchored block hash. -/
-def headerRlp (block : Lean.Json) : Except String ByteArray := do
+def headerRlp (block : Json) : Except String ByteArray := do
   let mut payload : List UInt8 := []
   for (name, quantity) in headerFields do
     match block.getObjVal? name with
@@ -167,7 +225,7 @@ def headerRlp (block : Lean.Json) : Except String ByteArray := do
 
 /-- An `eth_getProof` proof's nodes, joined as `Mpt.lookup` reads them: the first, then every
 later node of at least 32 bytes (a shorter one is inline in its parent). -/
-def proofNodes (items : Lean.Json) : Except String ByteArray := do
+def proofNodes (items : Json) : Except String ByteArray := do
   let arr ← items.getArr?
   let mut out := ByteArray.empty
   let mut i := 0
@@ -187,8 +245,8 @@ structure Anchored where
 def anchoredBlock (cfg : Config) (s : Store.Store) : IO Anchored := do
   let some a := Store.anchored cfg.chain s (← nowMs) | die "no anchor: the store is halted or too old"
   let hash := a.header.elHash
-  let block ← orDie "eth_getBlockByHash"
-    (← rpc cfg.execution "eth_getBlockByHash" (.arr #[toHex hash, false]))
+  let (m, ps) := blockCall hash
+  let block ← orDie "eth_getBlockByHash" (← rpcC cfg.execution m ps)
   let rlp ← orDie "header" (headerRlp block)
   timeVerify do
     match Anchor.bind cfg.chain a.header rlp with
@@ -202,9 +260,8 @@ structure AccountRead where
 
 def readAccount (cfg : Config) (b : Anchored) (addr : ByteArray) (slots : List ByteArray) :
     IO AccountRead := do
-  let keys := slots.map fun k => toHex k
-  let r ← orDie "eth_getProof" (← rpc cfg.execution "eth_getProof"
-    (.arr #[toHex addr, .arr (keys.toArray.map Lean.Json.str), toHex b.hash]))
+  let (m, ps) := proofCall addr slots b.hash
+  let r ← orDie "eth_getProof" (← rpcC cfg.execution m ps)
   let nodes ← orDie "accountProof" (proofNodes (← orDie "eth_getProof" (r.getObjVal? "accountProof")))
   let sp ← orDie "storageProof" do (← r.getObjVal? "storageProof").getArr?
   if sp.size != slots.length then die "eth_getProof: wrong number of storage proofs"
@@ -220,7 +277,8 @@ def readAccount (cfg : Config) (b : Anchored) (addr : ByteArray) (slots : List B
 /-- The code at `addr`, accepted only when it hashes to the proved code hash. -/
 def readCode (cfg : Config) (b : Anchored) (addr : ByteArray) (codeHash : List UInt8) :
     IO ByteArray := do
-  let r ← orDie "eth_getCode" (← rpc cfg.execution "eth_getCode" (.arr #[toHex addr, toHex b.hash]))
+  let (m, ps) := codeCall addr b.hash
+  let r ← orDie "eth_getCode" (← rpcC cfg.execution m ps)
   let some code := hexBytes (← orDie "eth_getCode" r.getStr?) | die "eth_getCode: not hex"
   timeVerify do
     if Spec.Common.keccak code.data.toList == codeHash then pure code
