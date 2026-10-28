@@ -8,12 +8,14 @@ the identity) or Jacobian (`G1J`: `(X, Y, Z)` stands for `(X/Z², Y/Z³)`, and `
 identity). The formulas are the EFD's for `a = 0`: dbl-2009-l, add-2007-bl, madd-2007-bl, the
 same as EthLib's `G1.double` and `G1.add` but for the mixed addition.
 
-**Subgroup membership** in v1 is `[r]P = O` (`G1A.inSubgroup`), as KeyValidate states it.
-Scott's test (eprint 2021/1130 §6), `σ(P) = [−x²]P` with `σ(x, y) = (β·x, y)`, is about three
-times faster and is kept (`G1A.inSubgroupScott`) only for the tests to check against `[r]P`.
-Its cube root of unity `β` is pinned (`beta_eq`) and is the one for which `σ` acts on G1 as
-`[−x²]` (`beta_acts`), both checked by the kernel; the benchmark chose it when the program
-started.
+**Subgroup membership** is `[r]P = O` (`G1A.inSubgroup`), as KeyValidate states it. What runs
+is `G1A.inSubgroupFast`: Scott's test (eprint 2021/1130 §6), `σ(P) = [−x²]P` with
+`σ(x, y) = (β·x, y)`, about three times faster, for a point with `x ≠ 0`, and `[r]P = O` for any
+point that test does not accept. `LeanLightProofs.Bls.Scott` proves Scott's test accepts only
+points with `[r]P = O`, so `inSubgroupFast` accepts exactly what `inSubgroup` accepts
+(`inSubgroupFast_eq`); every key of G1 passes the fast test, so the slow one runs only on a key
+KeyValidate refuses. The cube root of unity `β` is pinned (`beta_eq`) and is the one for which
+`σ` acts on G1's generator as `[−x²]` (`beta_acts`), both checked by the kernel.
 -/
 
 namespace LeanLight.Lc.Bls
@@ -148,7 +150,11 @@ theorem beta_eq : beta = fpow 2 ((P - 1) / 3) := by decide +kernel
 
 theorem beta_acts : (g1Gen.sigma).eq (G1J.mulA g1Gen (X * X)).neg = true := by decide +kernel
 
-/-- Membership in G1 by Scott's test, `σ(p) = [−x²]p`; not on v1's path. -/
+/-- Membership in G1 by Scott's test, `σ(p) = [−x²]p`. -/
 def G1A.inSubgroupScott (p : G1A) : Bool := p.sigma.eq (G1J.mulA p (X * X)).neg
+
+/-- Membership in G1 as KeyValidate runs it: Scott's test for `x ≠ 0`, else `[r]p = O`. Equal to
+`inSubgroup` on the curve (`LeanLightProofs.Bls.Scott.inSubgroupFast_eq`). -/
+def G1A.inSubgroupFast (p : G1A) : Bool := (p.x != 0 && p.inSubgroupScott) || p.inSubgroup
 
 end LeanLight.Lc.Bls

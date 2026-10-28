@@ -37,3 +37,7 @@ lean_exe «leanlight-ssz-test» where
 /-- `lake exe leanlight-store-test`: `LeanLight.Store` against consensus-specs' light-client vectors. -/
 lean_exe «leanlight-store-test» where
   root := `LeanLightTests.StoreMain
+
+/-- `lake exe leanlight-committee-bench`: where taking in a committee spends its time. -/
+lean_exe «leanlight-committee-bench» where
+  root := `LeanLightTests.CommitteeBench

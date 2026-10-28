@@ -431,6 +431,16 @@ theorem receive_finalized_mono (c : Chain) (s : Store) (now : Nat) (u : Update) 
     s.finalized.beacon.slot ≤ (receive c s now u).1.finalized.beacon.slot := by
   rcases receive_finalized c s now u with h | ⟨_, _, h, hlt, _⟩ <;> rw [h]; omega
 
+/-- `mapPar` is `Array.map`: in the logic a task holds its value (`Task.spawn f = ⟨f ()⟩`). -/
+theorem mapPar_eq {α β : Type} (f : α → β) (a : Array α) : mapPar f a = a.map f := by
+  simp [mapPar, Array.map_map, Function.comp_def, Task.spawn]
+
+/-- The parallel validation is the sequential one: `(a.map f).mapM id = a.mapM f`. -/
+theorem mapPar_mapM {α β : Type} (f : α → Option β) (a : Array α) :
+    (mapPar f a).mapM id = a.mapM f := by
+  rw [mapPar_eq, Array.mapM_map]
+  rfl
+
 /-- A committee `Committee.ofSync` takes in: as many keys as the preset's committee, every one
 passing KeyValidate, and the committee's root. -/
 theorem ofSync_keys {p : Preset} {sc : LeanLight.Lc.Ssz.SyncCommittee} {com : Committee}
@@ -442,7 +452,7 @@ theorem ofSync_keys {p : Preset} {sc : LeanLight.Lc.Ssz.SyncCommittee} {com : Co
   · rename_i hs
     simp only [Option.map_eq_some_iff] at h
     obtain ⟨keys, hk, rfl⟩ := h
-    exact ⟨hs, hk, rfl⟩
+    exact ⟨hs, (mapPar_mapM _ _).symm.trans hk, rfl⟩
   · cases h
 
 /-- **Committees (25f).** The current committee changes only to the store's next one, and the

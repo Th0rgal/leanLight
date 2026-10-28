@@ -59,10 +59,10 @@ def g1Decompress? (b : ByteArray) : Option G1A :=
   | some y => some ⟨x, if fLarge y == sign then y else fneg y⟩
 
 /-- KeyValidate (IRTF BLS §2.5) of a 48-byte public key: decompressed, not the identity, and
-`[r]P = O`. -/
+`[r]P = O`, checked as `G1A.inSubgroupFast` checks it (equal to `inSubgroup` on the curve). -/
 def keyValidate? (b : ByteArray) : Option G1A :=
   match g1Decompress? b with
-  | some p => if p.inSubgroup then some p else none
+  | some p => if p.inSubgroupFast then some p else none
   | none => none
 
 /-! ## G2 -/

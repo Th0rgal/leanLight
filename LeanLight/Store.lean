@@ -156,11 +156,16 @@ structure Committee where
   root : ByteArray
   keys : Array Bls.G1A
 
+/-- `f` on every element of `a`, each in a task of its own, then read in order: `a.map f`
+(`LeanLightProofs.Store.mapPar_eq`; `Task.spawn` is `f` in the logic). -/
+def mapPar {α β : Type} (f : α → β) (a : Array α) : Array β :=
+  (a.map fun x => Task.spawn fun _ => f x).map Task.get
+
 /-- A committee taken in: as many keys as the preset's committee, each passing KeyValidate;
-`none` otherwise. -/
+`none` otherwise. The keys are validated in parallel (`mapPar`), then read in order. -/
 def Committee.ofSync (p : Preset) (sc : SyncCommittee) : Option Committee :=
   if sc.pubkeys.size = p.committeeSize then
-    (sc.pubkeys.mapM Bls.keyValidate?).map fun keys => ⟨committeeRoot p sc, keys⟩
+    ((mapPar Bls.keyValidate? sc.pubkeys).mapM id).map fun keys => ⟨committeeRoot p sc, keys⟩
   else none
 
 /-- Bit `i` of an SSZ `Bitvector`: bit `i % 8` of byte `i / 8`. -/

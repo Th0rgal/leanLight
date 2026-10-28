@@ -13,6 +13,7 @@ import LeanLightProofs.Bls.Jacobian
 import LeanLightProofs.Bls.Primes
 import LeanLightProofs.Bls.Provenance
 import LeanLightProofs.Bls.Roundtrip
+import LeanLightProofs.Bls.Scott
 import LeanLightProofs.Bls.Tower
 import LeanLightProofs.Bls.ValueEq
 import LeanLightProofs.Forks

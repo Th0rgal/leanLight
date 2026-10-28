@@ -251,7 +251,8 @@ theorem Eth.G1.keyValidate_isOk (b : ByteArray) :
     | some p =>
       rw [hd, Option.elim_some] at hu
       obtain ⟨hr, hn, -⟩ := g1Decompress?_some hd
-      rw [keyValidate_ok_of hu, inSubgroup_ofA hr hn, Option.elim_some]
+      rw [keyValidate_ok_of hu, inSubgroup_ofA hr hn, Option.elim_some,
+        G1A.inSubgroupFast_eq hr hn]
       cases p.inSubgroup <;> rfl
   · have hd : g1Decompress? b = none := by
       rw [g1Decompress?_eq]

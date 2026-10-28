@@ -1,4 +1,4 @@
-import LeanLightProofs.Bls.Curves
+import LeanLightProofs.Bls.Scott
 import LeanLight.Bls.Compress
 
 /-!
@@ -150,7 +150,8 @@ theorem keyValidate?_some {b : ByteArray} {p : G1A} (h : keyValidate? b = some p
     split at h
     · rename_i hs
       cases h
-      exact ⟨rfl, hr, hn, hne, (G1A.inSubgroup_iff hr hn).mp hs⟩
+      exact ⟨rfl, hr, hn, hne,
+        (G1A.inSubgroup_iff hr hn).mp ((G1A.inSubgroupFast_eq hr hn).symm.trans hs)⟩
     · cases h
 
 /-- The signature's checks of CoreVerify accept only a reduced point of `E'`, other than the

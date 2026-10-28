@@ -172,7 +172,7 @@ theorem keyValidate?_compress {p : G1A} (hp : p.Reduced) (hn : E1.Nonsingular p.
     (hr : R • Point.toAffine E1 p.toJ = 0) : keyValidate? p.compress = some p := by
   unfold keyValidate?
   rw [G1J.compress_match_1, g1Decompress?_compress hp hn, Option.elim_some,
-    ite_eq_left ((G1A.inSubgroup_iff hp hn).mpr hr)]
+    ite_eq_left ((G1A.inSubgroupFast_eq hp hn).trans ((G1A.inSubgroup_iff hp hn).mpr hr))]
 
 /-- **KeyValidate is canonical**: it accepts for a point only that point's compression. -/
 theorem keyValidate?_canonical {b : ByteArray} {p : G1A} (h : keyValidate? b = some p) :
