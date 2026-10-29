@@ -43,6 +43,7 @@ What the proofs cover, in brief (the statements are in the files):
 - **The store**: bootstrap binds the checkpoint; an update is accepted only after every check of
   the sync protocol, BLS included; conflicts halt the store; the age bound and the clock
   (`Store.lean`, `Forks.lean`).
+- **The client's decisions** (`Driver.lean`): see [Trust model](#trust-model).
 - **Reads**: an EL header is bound to the verified beacon header only when its RLP hashes to the
   execution block hash; an account or storage value is what the Merkle-Patricia trie under that
   header's state root holds, short of a Keccak-256 collision on bytes the theorem names
@@ -83,10 +84,15 @@ equal to `Array.map` in the logic (`mapPar_eq`).
 **Trusted, unverified.**
 
 - Lean's compiler and runtime, and GMP, which computes `Nat` arithmetic (BLS12-381's fields).
-- The command-line client (`Main.lean`, `LeanLightCli/`): which objects it fetches and in what
-  order, its retries, how `curl`'s output and JSON become bytes. It hands every byte to
-  `LeanLight`'s checked readers and prints only what they return, so a bug there can fail a read
-  or sync to a stale head; it cannot make a forged value pass a check. That glue is not proved.
+- The command-line client's fetch loop (`Main.lean`, `LeanLightCli/`): which objects it fetches
+  and in what order, its retries, how `curl`'s output and JSON become bytes. Every decision about
+  those bytes is `LeanLight.Driver`'s, and proved (`LeanLightProofs/Driver.lean`): the store is
+  only ever one `Store.bootstrap` of the checkpoint started and `Store.receive` steps carried
+  (`start_reaches`, `feed_reaches`), and a value printed is read at that store's anchor, under
+  the EL header `Anchor.bind` keeps for it, by the trie's specification (`read_sound`), code only
+  when it hashes to the proved hash (`codeOk_spec`). So a bug in the loop can fail a read or leave
+  the anchor stale; it cannot make a value pass that those checks refuse. The loop itself is not
+  proved.
 - `curl`, the operating system and the clock: a clock set back can make an old checkpoint look
   fresh (`docs/spec-16-light-client.md`, "The clock").
 - **The checkpoint, when you give none.** Without `--checkpoint`, leanlight takes the beacon

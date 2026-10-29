@@ -80,22 +80,19 @@ def bootstrapOf (cfg : Config) (root : ByteArray) (bs : ByteArray) (version : Op
   let some fork := version.bind forkOfName | die s!"bootstrap: fork {version} unknown"
   let now ← nowMs
   timeVerify do
-    let some b := Codec.decodeBootstrap Codec.mainnet cfg.chain (.name fork) bs
-      | die "bootstrap: does not decode as its fork's LightClientBootstrap"
-    match Store.bootstrap cfg.chain root now b with
+    match Driver.start cfg.chain root now (.name fork) bs with
     | some s => pure s
-    | none => die "bootstrap: refused (root, committee branch, age or keys)"
+    | none => die "bootstrap: refused (decoding, root, committee branch, age or keys)"
 
 /-- One update through the store. -/
 def receive (cfg : Config) (sy : Synced) (k : Codec.Kind) (tag : Codec.Tag) (bs : ByteArray) :
     IO Synced := do
   let now ← nowMs
   timeVerify do
-    match Codec.decodeUpdate Codec.mainnet cfg.chain k tag bs with
-    | none => pure { sy with updates := sy.updates + 1, refused := "undecodable" :: sy.refused }
-    | some u =>
-      let (s, v) := Store.receive cfg.chain sy.store now u
-      log s!"  update attested {u.slot} signature {u.signatureSlot}: {verdictName v}"
+    match Driver.feed cfg.chain sy.store now k tag bs with
+    | (_, none) => pure { sy with updates := sy.updates + 1, refused := "undecodable" :: sy.refused }
+    | (s, some v) =>
+      log s!"  update: {verdictName v}"
       match v with
       | .accepted _ _ => pure { sy with store := s, updates := sy.updates + 1, accepted := sy.accepted + 1 }
       | .irrelevant | .compared => pure { sy with store := s, updates := sy.updates + 1 }
@@ -237,20 +234,24 @@ def proofNodes (items : Json) : Except String ByteArray := do
 
 /-- The anchored block: its beacon header and the EL header's RLP, bound. -/
 structure Anchored where
+  /-- The store and the clock the anchor was read at: reads use the same. -/
+  store : Store.Store
+  now : Nat
   beacon : Store.Header
   rlp : ByteArray
   el : Spec.Header.Header
   hash : ByteArray
 
 def anchoredBlock (cfg : Config) (s : Store.Store) : IO Anchored := do
-  let some a := Store.anchored cfg.chain s (← nowMs) | die "no anchor: the store is halted or too old"
+  let now ← nowMs
+  let some a := Store.anchored cfg.chain s now | die "no anchor: the store is halted or too old"
   let hash := a.header.elHash
   let (m, ps) := blockCall hash
   let block ← orDie "eth_getBlockByHash" (← rpcC cfg.execution m ps)
   let rlp ← orDie "header" (headerRlp block)
   timeVerify do
-    match Anchor.bind cfg.chain a.header rlp with
-    | some h => pure { beacon := a.header, rlp, el := h, hash }
+    match Driver.bindAnchor cfg.chain s now rlp with
+    | some (b, h) => pure { store := s, now, beacon := b, rlp, el := h, hash }
     | none => die "header: the endpoint's block does not match the anchored execution block"
 
 /-- What a verified read says. -/
@@ -270,18 +271,18 @@ def readAccount (cfg : Config) (b : Anchored) (addr : ByteArray) (slots : List B
     let ns ← orDie "storage proof" do proofNodes (← p.getObjVal? "proof")
     pairs := pairs ++ [(k.data.toList, ns)]
   timeVerify do
-    match Facts.storage cfg.chain b.beacon b.rlp addr.data.toList nodes pairs with
+    match Driver.read cfg.chain b.store b.now b.rlp addr.data.toList nodes pairs with
     | some (_, acct, vs) => pure { account := acct, slots := vs }
     | none => die "eth_getProof: the proof does not prove the account under the anchored state root"
 
 /-- The code at `addr`, accepted only when it hashes to the proved code hash. -/
-def readCode (cfg : Config) (b : Anchored) (addr : ByteArray) (codeHash : List UInt8) :
+def readCode (cfg : Config) (b : Anchored) (addr : ByteArray) (acct : Spec.Mpt.Account) :
     IO ByteArray := do
   let (m, ps) := codeCall addr b.hash
   let r ← orDie "eth_getCode" (← rpcC cfg.execution m ps)
   let some code := hexBytes (← orDie "eth_getCode" r.getStr?) | die "eth_getCode: not hex"
   timeVerify do
-    if Spec.Common.keccak code.data.toList == codeHash then pure code
+    if Driver.codeOk acct code then pure code
     else die "eth_getCode: the code does not hash to the proved code hash"
 
 end LeanLight.Cli

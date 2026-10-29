@@ -132,7 +132,7 @@ def runQuery (cfg : Config) (b : Anchored) : Query → IO (List (String × Json)
       ("value", Json.str (natHex r.account.nonce))], s!"{r.account.nonce}")
   | .code a addr => do
     let r ← readAccount cfg b addr []
-    let code ← readCode cfg b addr r.account.codeHash
+    let code ← readCode cfg b addr r.account
     pure ([("q", Json.str "code"), ("addr", Json.str a), ("block", (jn b.el.number)),
       ("value", Json.str (toHexL r.account.codeHash)), ("size", (jn code.size))],
       s!"{toHexL r.account.codeHash} ({code.size} bytes)")

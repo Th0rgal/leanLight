@@ -16,6 +16,7 @@ import LeanLight.Bls.HashToG2
 import LeanLight.Bls.Pairing
 import LeanLight.Bytes
 import LeanLight.Codec
+import LeanLight.Driver
 import LeanLight.El.Header
 import LeanLight.El.History
 import LeanLight.El.Mpt
