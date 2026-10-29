@@ -21,7 +21,7 @@ alone: a library, its proofs, its tests and a command-line client.
 |---|---|---|
 | `LeanLight/` | The light client: SHA-256, Keccak-256, RLP, SSZ (decoding, `hash_tree_root`, branches), BLS12-381 (fields to `Fp12`, G1, G2, hash-to-G2, the pairing, FastAggregateVerify), the chain table (mainnet, Sepolia, Electra to Gloas), the sync protocol's store, execution-layer headers, Merkle-Patricia proofs, the reads anchored on a verified header, and the inclusion verdict for transactions and receipts | Lean core only |
 | `proofs/` | Theorems about `LeanLight`'s definitions, against readable specifications: the vendored [ssz-specs](https://github.com/ethereum/ssz-specs) (MIT), [EthLib](https://github.com/ethereum/EthLib)'s BLS12-381 (CC0) and [VCVio](https://github.com/Verified-zkEVM/VCVio)'s SHA-2 (Apache-2.0), with Mathlib's elliptic-curve group law | Mathlib |
-| `tests/` | consensus-specs' light-client and SSZ vectors, BLS vectors and a differential test against EthLib's readable BLS, a committee benchmark | `LeanLight` |
+| `tests/` | consensus-specs' light-client and SSZ vectors, BLS vectors and a differential test against EthLib's readable BLS; recorded mainnet runs replayed offline, honest and forged (`leanlight-client-test`); the offline benchmark (`leanlight-bench`) | `LeanLight` |
 | `Main.lean`, `LeanLightCli/` | `leanlight`, the command-line client (HTTP through `curl`) | `LeanLight` |
 | `bench/` | The comparison with [Helios](https://github.com/a16z/helios) on the same endpoints, and its results | Python 3 |
 | `scripts/` | The axiom audit and the kernel replay | |
@@ -116,7 +116,8 @@ Lean 4.35.0 (`elan` picks it from `lean-toolchain`) and, for the client, `curl`.
 ```sh
 lake build                               # the library and leanlight: .lake/build/bin/leanlight
 (cd tests && lake build && ./.lake/build/bin/leanlight-store-test \
-  && ./.lake/build/bin/leanlight-ssz-test && ./.lake/build/bin/leanlight-bls-test --quick)
+  && ./.lake/build/bin/leanlight-ssz-test && ./.lake/build/bin/leanlight-bls-test --quick \
+  && ./.lake/build/bin/leanlight-client-test && ./.lake/build/bin/leanlight-bench --runs 3)
 (cd proofs && lake exe cache get && lake build)   # the proofs, with Mathlib's cache
 scripts/check-axioms.sh && scripts/check-kernel.sh
 ```
@@ -136,6 +137,7 @@ leanlight [--network mainnet|sepolia] --consensus-rpc URL --execution-rpc URL \
 | `code ADDR` | the proved code hash, the code accepted only if it hashes to it |
 | `storage ADDR SLOT...` | storage words, from their proofs |
 | `queries FILE` | one sync, then every line of `FILE` (`bench/mainnet.queries`) at one block |
+| `record DIR [FILE]` | a run (and `FILE`'s reads) recorded for the offline tests and benchmark, after checking it |
 
 The beacon node must serve the light-client API in SSZ (Nimbus and Lodestar do; publicnode's
 beacon API serves JSON only). Without `--checkpoint`, the node's finalized root is taken on
@@ -153,12 +155,34 @@ optimistic updates fetched together; older periods after) and fetches a whole se
 one JSON-RPC batch. Every value it prints comes out of `LeanLight`'s checked readers, never out
 of the JSON. Committee keys are validated in parallel on every core.
 
-## Against Helios
+## Speed
 
-`bench/compare.py` starts Helios (`a16z/helios` `2af9b41`) and `leanlight` from the same
-checkpoint on the same consensus and execution endpoints, takes each read at leanLight's anchored
-block from both and from the endpoint itself, and compares. Results of 2026-10-29 on mainnet
-(32-core machine; `bench/results/2026-10-29/`):
+**What verifying costs, offline.** `tests/` replays two recorded mainnet runs (`leanlight
+record`, in `tests/fixtures/`) with no network, so only the light client's own work is timed
+(`lake exe leanlight-bench`; median of 15 runs, on a shared 32-core machine under load;
+`bench/results/offline-2026-10-29/`):
+
+| Step | 1 core | 4 cores | 32 cores |
+|---|---|---|---|
+| Bootstrap (the checkpoint's committee: 512 keys through KeyValidate) | 283 ms | 88 ms | 28 ms |
+| A period update (a signature and the next committee's 512 keys) | 222–327 ms | 127–264 ms | 42–103 ms |
+| A finality or optimistic update (one signature) | 20–35 ms | 32–36 ms | 33–42 ms |
+| Binding the anchored block's header | 13–34 µs | 25–31 µs | 26–34 µs |
+| 13 reads (balances, nonces, storage, code), proofs checked | 0.8 ms | 1.4 ms | 0.9 ms |
+| **A sync from a fresh checkpoint**, then the 13 reads | **0.59 s** | 0.29 s | 0.16 s |
+| **A sync from a checkpoint 7 periods old** | **2.05 s** | 1.24 s | 0.54 s |
+
+Committee keys are the cost: 512 subgroup checks per committee, spread over the cores. A
+signature check (hash-to-G2 and the pairing, in Lean over GMP) is 20–40 ms and gains nothing
+from more cores; a native BLS library takes about 1 ms. Proofs and headers are cheap.
+
+**Against Helios, on the same endpoints.** `bench/compare.py` starts Helios (`a16z/helios`
+`2af9b41`) and `leanlight` from the same checkpoint on the same consensus and execution
+endpoints, and compares every read at leanLight's anchored block with Helios's and the endpoint's
+(2026-10-29, mainnet, 3 rounds per endpoint set; `bench/results/2026-10-29/`). Read it as two
+request strategies over the same network rather than as the two verifiers' speed: the network
+dominates, leanlight fetches its sync objects in one round trip and its reads in one JSON-RPC
+batch while Helios asks one call per read, and leanLight's committee checks use every core.
 
 | | Helios | leanLight |
 |---|---|---|
@@ -169,11 +193,9 @@ block from both and from the endpoint itself, and compares. Results of 2026-10-2
 | Binary | 25 MB | 6.4 MB |
 
 Every value leanLight returned equalled the endpoint's at its block, and Helios's wherever Helios
-answered at that block. With Lodestar's public beacon node as its source, Helios failed to become
-ready within 120 s in two rounds out of three; leanLight synced from it in under 0.4 s.
-
-On one core, a sync committee's 512 keys take 0.16 s to validate (decompression and Scott's
-test); a signature check takes 17 ms (hash-to-G2 6 ms, the pairing 7.5 ms).
+answered at that block. With Lodestar's public beacon node as its source, Helios did not become
+ready within 120 s in two rounds of three: its head stayed minutes old, which looks like stale
+JSON answers from that source (leanLight reads its SSZ), not a speed result.
 
 ## Reading the comments
 

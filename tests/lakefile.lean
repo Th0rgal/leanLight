@@ -46,3 +46,7 @@ lean_exe «leanlight-committee-bench» where
 mainnet runs (`fixtures/`), offline: the honest run, and forgeries refused. -/
 lean_exe «leanlight-client-test» where
   root := `LeanLightTests.ClientMain
+
+/-- `lake exe leanlight-bench`: what verifying costs, offline, on the recorded runs. -/
+lean_exe «leanlight-bench» where
+  root := `LeanLightTests.BenchMain

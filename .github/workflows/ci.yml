@@ -29,6 +29,8 @@ jobs:
           ./.lake/build/bin/leanlight-store-test
           ./.lake/build/bin/leanlight-ssz-test
           ./.lake/build/bin/leanlight-bls-test --quick
+          ./.lake/build/bin/leanlight-client-test
+          ./.lake/build/bin/leanlight-bench --runs 3
 
   proofs:
     runs-on: ubuntu-latest

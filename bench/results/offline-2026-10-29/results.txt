@@ -1,0 +1,55 @@
+# leanlight-bench, 2026-10-29T18:53Z, 32 cores, load average 33.21 18.83 14.65 (a shared machine)
+
+## LEAN_NUM_THREADS=1 (pinned to 1 cores)
+mainnet-fresh: 1 period update(s), 13 reads, median of 15 runs
+  bootstrap      282.6 ms
+  period update  257.9 ms
+  finality       28.5 ms
+  optimistic     20.3 ms
+  header         13 µs
+  reads          808 µs
+  total          590.3 ms
+mainnet-week: 7 period update(s), 0 reads, median of 15 runs
+  bootstrap      206.7 ms
+  period update  222.6 ms, 326.5 ms, 221.9 ms, 267.6 ms, 234.0 ms, 261.9 ms, 238.7 ms
+  finality       35.1 ms
+  optimistic     31.5 ms
+  header         29 µs
+  reads          0 µs
+  total          2047.0 ms
+
+## LEAN_NUM_THREADS=4 (pinned to 4 cores)
+mainnet-fresh: 1 period update(s), 13 reads, median of 15 runs
+  bootstrap      88.3 ms
+  period update  130.6 ms
+  finality       36.0 ms
+  optimistic     32.4 ms
+  header         25 µs
+  reads          1.4 ms
+  total          288.9 ms
+mainnet-week: 7 period update(s), 0 reads, median of 15 runs
+  bootstrap      90.0 ms
+  period update  142.7 ms, 136.1 ms, 138.6 ms, 264.1 ms, 144.0 ms, 131.6 ms, 126.7 ms
+  finality       32.7 ms
+  optimistic     33.2 ms
+  header         31 µs
+  reads          0 µs
+  total          1240.2 ms
+
+## LEAN_NUM_THREADS=32 (pinned to 32 cores)
+mainnet-fresh: 1 period update(s), 13 reads, median of 15 runs
+  bootstrap      27.9 ms
+  period update  66.0 ms
+  finality       33.4 ms
+  optimistic     34.1 ms
+  header         26 µs
+  reads          879 µs
+  total          162.4 ms
+mainnet-week: 7 period update(s), 0 reads, median of 15 runs
+  bootstrap      29.0 ms
+  period update  67.6 ms, 66.4 ms, 64.2 ms, 42.3 ms, 42.6 ms, 42.7 ms, 102.6 ms
+  finality       41.7 ms
+  optimistic     36.3 ms
+  header         34 µs
+  reads          0 µs
+  total          535.9 ms
