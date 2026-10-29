@@ -41,3 +41,8 @@ lean_exe «leanlight-store-test» where
 /-- `lake exe leanlight-committee-bench`: where taking in a committee spends its time. -/
 lean_exe «leanlight-committee-bench» where
   root := `LeanLightTests.CommitteeBench
+
+/-- `lake exe leanlight-client-test`: the client's decisions (`LeanLight.Driver`) on recorded
+mainnet runs (`fixtures/`), offline: the honest run, and forgeries refused. -/
+lean_exe «leanlight-client-test» where
+  root := `LeanLightTests.ClientMain

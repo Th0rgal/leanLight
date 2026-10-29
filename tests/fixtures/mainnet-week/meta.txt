@@ -1,0 +1,9 @@
+network mainnet
+now_ms 1793299803947
+checkpoint 0xdef046b141a64f599fb85f8d3b8cec23be2ca3ce42fb80284fc54e1a0183e3fa
+bootstrap_fork fulu
+finality_fork fulu
+optimistic_fork fulu
+anchor_hash 0xd4d10ecc9113229be1b796a27b5709427b504b67d6c6a8286e5f1dc6ac4ac451
+block 26300301
+periods 7

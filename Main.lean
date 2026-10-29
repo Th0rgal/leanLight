@@ -1,4 +1,4 @@
-import LeanLightCli.Client
+import LeanLightCli.Record
 
 /-!
 # `leanlight`
@@ -15,6 +15,7 @@ COMMAND:
   nonce ADDR              the account's nonce, proved
   code ADDR               the code's hash and size, the code checked against the proved hash
   storage ADDR SLOT...    storage words, proved
+  record DIR [FILE]       record a run (and FILE's reads) for the offline tests and benchmark
   queries FILE            one sync, then each line of FILE ("balance 0x..", "nonce 0x..",
                           "code 0x..", "storage 0x.. 0xSLOT..", "block-number")
 ```
@@ -66,7 +67,7 @@ partial def parseArgs : List String → Args → Except String Args
 def usage : String :=
   "usage: leanlight [--network mainnet|sepolia] --consensus-rpc URL [--execution-rpc URL] " ++
   "[--checkpoint 0xROOT] [--json] [-v] (sync | block-number | balance ADDR | nonce ADDR | " ++
-  "code ADDR | storage ADDR SLOT... | queries FILE); --execution-rpc is required but for sync"
+  "code ADDR | storage ADDR SLOT... | queries FILE | record DIR [FILE]); --execution-rpc is required but for sync"
 
 /-! ## Reads, checked before anything is fetched -/
 
@@ -193,6 +194,28 @@ def main (argv : List String) : IO UInt32 := do
     | .ok (some c) => if c.size == 32 then pure (some c) else return ← fail "checkpoint: not 32 bytes"
     | .ok none => pure none
     | .error e => return ← fail e
+  if let "record" :: dir :: rest := args.rest then
+    let some exec := args.execution | return ← fail "--execution-rpc is required to record"
+    let lines ← match rest with
+      | [file] => do
+        let ls ← IO.FS.lines file
+        pure (ls.toList.map (·.trimAscii.toString) |>.filter fun l => !l.isEmpty && !l.startsWith "#")
+      | [] => pure []
+      | _ => return ← fail "record DIR [FILE]"
+    let mut qs := []
+    for l in lines do
+      match parseQuery ((l.splitOn " ").filter (· ≠ "")) with
+      | .ok q => qs := qs ++ [(l, q)]
+      | .error e => return ← fail s!"{l}: {e}"
+    let cfg : Config := { chain, consensus, execution := exec, checkpoint }
+    try
+      -- each read's calls at the block `record` anchors
+      Record.record cfg dir (qs.map fun (l, q) => (l, fun hash => callsOf hash q))
+      cleanup
+      return 0
+    catch e =>
+      IO.eprintln s!"error: {e}"
+      return 1
   let command ← match ← parseCommand args.rest with
     | .ok c => pure c
     | .error e => return ← fail e
