@@ -128,6 +128,27 @@ The code keeps the identifiers of the design it came from, leanKohakuDesktop's
 - `lkd-lc`, `netd`, `keyd`, `lkd_verified`: the wallet's light-client process, network service,
   signer and verified Rust crate, which the comments mention where the wallet uses the code.
 
+## Acknowledgements
+
+leanLight's proofs stand on three projects, whose code is vendored under
+`proofs/LeanLightProofs/Vendor/` as the readable specifications the runtime is proved against.
+Thank you to their authors:
+
+- **[ssz-specs](https://github.com/ethereum/ssz-specs)** (Ethereum Foundation, MIT), commit
+  `3394318c`: SSZ's types, serialization, `hash_tree_root` and Merkle proofs, with their proofs.
+  The light client's SSZ decoders, container roots and branch checks are proved against it.
+- **[EthLib](https://github.com/ethereum/EthLib)** (CC0-1.0), commit `57af539e`: BLS12-381 in
+  Lean, its readable layer and its G1 group-law proofs. KeyValidate, hash-to-G2 and
+  FastAggregateVerify are proved equal to EthLib's, and the Jacobian formulas' proofs are
+  ported from it.
+- **[VCVio](https://github.com/Verified-zkEVM/VCVio)** (Apache-2.0), commit `afa6593f`: SHA-256
+  in Lean, the specification the runtime's SHA-256 is proved against.
+
+They are copied, not required: each file names its source commit, and the copies changed only
+as their headers say. Thanks also to [Mathlib](https://github.com/leanprover-community/mathlib4),
+whose elliptic-curve group law the BLS proofs use, and to
+[Helios](https://github.com/a16z/helios), the light client leanLight is measured against.
+
 ## License
 
 MIT OR Apache-2.0, at your option (`LICENSE-MIT`, `LICENSE-APACHE`). The vendored code under

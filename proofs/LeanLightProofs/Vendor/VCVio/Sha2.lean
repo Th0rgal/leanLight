@@ -10,7 +10,7 @@ Authors: Nicolas Consigny, Alexander Hicks
 An excerpt of VCVio's `HashSig/SLHDSA/Concrete/Sha2.lean` (Apache-2.0), at commit
 `afa6593f15e1e79ecb3cf22fc56191cecb452bb0` of `github.com/Verified-zkEVM/VCVio`: the SHA-256
 engine of FIPS 180-4 and HMAC-SHA256 of FIPS 198-1, unchanged. Left out are SHA-224 and MGF1,
-which `keyd` does not use, the SHA-512 family, vendored from the same commit in `Sha512.lean`,
+which the light client does not use, the SHA-512 family,
 and the module-system keywords (`module`, `public import`, `public section`) of VCVio's Lean
 4.34 build; `ℕ` is written `Nat`, since this file does not import Mathlib.
 
