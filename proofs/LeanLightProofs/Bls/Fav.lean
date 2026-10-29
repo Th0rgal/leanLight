@@ -149,11 +149,11 @@ def HashInG2 : Prop :=
 
 set_option linter.auxLemma false in
 theorem fastAggregateVerify_match_3 (x : Option G1A) (n : Unit → Bool) (f : G1A → Bool) :
-    fastAggregateVerify.match_3 (fun _ => Bool) x n f = x.elim (n ()) f := by cases x <;> rfl
+    verifyAggregate.match_3 (fun _ => Bool) x n f = x.elim (n ()) f := by cases x <;> rfl
 
 set_option linter.auxLemma false in
 theorem fastAggregateVerify_match_1 (x : Option G2A) (n : Unit → Bool) (f : G2A → Bool) :
-    fastAggregateVerify.match_1 (fun _ => Bool) x n f = x.elim (n ()) f := by cases x <;> rfl
+    verifyAggregate.match_1 (fun _ => Bool) x n f = x.elim (n ()) f := by cases x <;> rfl
 
 section Pairing
 
@@ -196,7 +196,7 @@ theorem fastAggregateVerify_iff (hcheck : PairingCheckIs e) (hhash : HashOnCurve
         e (aff1 g1Gen.toJ) (aff2 σ.toJ) = e (pks.toList.map fun p => aff1 p.toJ).sum (aff2 h.toJ) := by
   have hagg := aggregate?_spec pks fun p hp => ⟨(hpks p hp).1, (hpks p hp).2.1⟩
   have hsum := sum_mem_G1 pks.toList fun p hp => (hpks p hp).2.2
-  unfold fastAggregateVerify
+  unfold fastAggregateVerify verifyAggregate
   rw [fastAggregateVerify_match_3]
   revert hagg
   cases aggregate? pks with

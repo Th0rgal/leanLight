@@ -7,18 +7,26 @@ import LeanLight.Bls.Pairing
 
 What the light client's store calls (`docs/spec-16-light-client.md`, "Cryptography in Lean"):
 
-* `keyValidate?` (`LeanLight.Bls.Compress`), once per committee key, when a committee is taken in;
-* `fastAggregateVerify pks msg sig`, per update, over the keys of the participants, each one
-  `keyValidate?` returned, the message the signing root and `sig` the signature's 96 bytes.
+* `verifyAggregate agg? msg sig`, per update, over the participants' aggregate key the store
+  computes (`Store.signersKey?`: the committee's `aggregate_pubkey` less the absent keys when
+  more than half signed, as Helios does, else the participants' sum), the message the signing
+  root and `sig` the signature's 96 bytes. The committee's keys are decoded, not validated: the
+  consensus specification's light client does not run KeyValidate on them, and neither does
+  Helios; that they are in G1 and that the aggregate is their sum is the chain's (the state
+  transition's), a named hypothesis of the store's theorems (`Store.Committee.Consistent`).
+
+The readable layer, which the theorems below are about: `fastAggregateVerify pks msg sig`, over
+keys `keyValidate?` (`LeanLight.Bls.Compress`) returned, is `verifyAggregate` of their sum, and
+`fastAggregateVerifyBytes` takes the keys' bytes.
 
 `fastAggregateVerify` is IRTF BLS's FastAggregateVerify (draft-irtf-cfrg-bls-signature-05
 §3.3.4) for Ethereum's ciphersuite `BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_POP_`, in CoreVerify's
 arrangement as EthLib's `coreVerify` has it, `e(g₁, σ)·e(−agg, H(m)) = 1`:
 
-1. the aggregate `agg` is the sum of the participants' keys (not the committee's
-   `aggregate_pubkey` minus the absent, helios's shortcut, which rests on an unchecked
-   equation), and is refused when it is the identity, as CoreVerify's KeyValidate of it would
-   (so no key at all is refused too);
+1. the aggregate `agg` is the sum of the participants' keys (the store's shortcut through the
+   committee's `aggregate_pubkey` equals it where that is the keys' sum,
+   `LeanLightProofs.Store.signersKey?_eq`), and is refused when it is the identity, as
+   CoreVerify's KeyValidate of it would (so no key at all is refused too);
 2. the signature passes `sigValidate?`: on the twist, not the identity, `[r]σ = O`;
 3. `H(m)` is `hash_to_G2(m)` under Ethereum's DST, refused if SSWU refuses or it is the
    identity (`LeanLight.Bls.HashToG2`);
@@ -51,10 +59,10 @@ def ethDst : ByteArray := "BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_POP_".toUTF8
 def aggregate? (pks : Array G1A) : Option G1A :=
   (pks.foldl (fun acc p => acc.addA p) G1J.inf).toAffine?
 
-/-- FastAggregateVerify over keys `keyValidate?` returned: the participants' keys `pks`, the
-message `msg` (the signing root) and the signature's 96 bytes `sig`. -/
-def fastAggregateVerify (pks : Array G1A) (msg sig : ByteArray) : Bool :=
-  match aggregate? pks with
+/-- FastAggregateVerify's check once the keys are aggregated: `agg?` the aggregate key (`none`:
+refused), the message `msg` (the signing root) and the signature's 96 bytes `sig`. -/
+def verifyAggregate (agg? : Option G1A) (msg sig : ByteArray) : Bool :=
+  match agg? with
   | none => false
   | some agg =>
     match sigValidate? sig with
@@ -63,6 +71,11 @@ def fastAggregateVerify (pks : Array G1A) (msg sig : ByteArray) : Bool :=
       match H2C.hashToG2? msg ethDst with
       | none => false
       | some h => pairingCheck [(g1Gen, s), (agg.neg, h)]
+
+/-- FastAggregateVerify over keys `keyValidate?` returned: the participants' keys `pks`, the
+message `msg` (the signing root) and the signature's 96 bytes `sig`. -/
+def fastAggregateVerify (pks : Array G1A) (msg sig : ByteArray) : Bool :=
+  verifyAggregate (aggregate? pks) msg sig
 
 /-- FastAggregateVerify over encodings, as IRTF BLS states it: every key `keyValidate?`
 accepts, then `fastAggregateVerify`. -/

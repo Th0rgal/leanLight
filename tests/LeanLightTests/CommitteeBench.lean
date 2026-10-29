@@ -3,7 +3,8 @@ import LeanLight
 /-!
 `lake exe leanlight-committee-bench [bootstrap.ssz]`: where taking in a sync committee spends its
 time, on a real mainnet bootstrap: decoding, the committee's root, decompression (the square root),
-the subgroup check by `[r]P` and by Scott's endomorphism test, and `Committee.ofSync` whole.
+the subgroup check by `[r]P` and by Scott's endomorphism test (which the store no longer runs), and
+`Committee.ofSync` whole; then one signature's steps.
 -/
 
 open LeanLight.Lc LeanLight.Lc.Bls
@@ -34,8 +35,10 @@ def main (args : List String) : IO UInt32 := do
   let c := Forks.mainnet
   let some v := c.signatureVersion u.signatureSlot | return 1
   let msg := Forks.signingRoot u.attested.root (Forks.computeDomain Forks.domainSyncCommittee v c.genesisValidatorsRoot)
-  let parts ← timeIt "participants" 1 (fun _ => Store.participants com.keys u.aggregate.bits) (fun a => toString a.size)
+  let parts ← timeIt "participants (sqrt each)" 1 (fun _ => (Store.participants com.pubkeys u.aggregate.bits).filterMap g1Decompress?) (fun a => toString a.size)
   let _ ← timeIt "aggregate (G1 adds)" 1 (fun _ => aggregate? parts) (fun o => toString o.isSome)
+  let _ ← timeIt "signersSum? (readable)" 1 (fun _ => Store.signersSum? com u.aggregate.bits) (fun o => toString o.isSome)
+  let _ ← timeIt "signersKey? (aggregate less absent)" 1 (fun _ => Store.signersKey? com u.aggregate.bits) (fun o => toString o.isSome)
   let _ ← timeIt "sigValidate? (G2 decompress + [r]Q)" 1 (fun _ => sigValidate? u.aggregate.signature) (fun o => toString o.isSome)
   let _ ← timeIt "g2Decompress? only" 1 (fun _ => g2Decompress? u.aggregate.signature) (fun o => toString o.isSome)
   let some h ← timeIt "hashToG2" 1 (fun _ => H2C.hashToG2? msg ethDst) (fun o => toString o.isSome) | return 1

@@ -13,7 +13,8 @@ shows the evidence and the core reach stores only through them.
 `Passed` every check before and including BLS (not halted, `formOk`, a committee held for its
 signature period, the age bound, the signature) and `afterBls` decides the rest.
 
-* **25d, domains and forks.** The signature is checked under the participants' keys, the fork
+* **25d, domains and forks.** The signature is checked under the participants' aggregate key
+  (their sum on a committee as the chain holds one, `LeanLightProofs.Signers`), the fork
   version at the epoch of `max(signature_slot, 1) − 1`, `compute_domain(DOMAIN_SYNC_COMMITTEE,
   version, genesis_validators_root)` and the signing root of the attested header's root
   (`verifySignature_iff`); bytes are decoded only as the fork their tag names, which must be the
@@ -23,12 +24,12 @@ signature period, the age bound, the signature) and `afterBls` decides the rest.
   `isBetter`'s last key (`rank_signatureSlot`).
 * **25e, bootstrap** (`bootstrap_sound`): a store starts only from a header valid at its slot's
   fork whose root is the configured checkpoint, a committee proved by its branch at the fork's
-  gindex under the header's state root, every key passing KeyValidate (`ofSync_keys`), and a
+  gindex under the header's state root, as many keys as the preset's committee (`ofSync_keys`), and a
   checkpoint younger than `MAX_AGE`; it starts with nothing anchored and no next committee.
 * **25f, acceptance.** The finalized header moves only forward, to one valid at its slot's fork
   and proved by a finality branch under the state root of an attested header two thirds of the
   current or next committee signed (`receive_finalized`); a next committee enters only as the
-  committee of an update whose branch proved its root, its keys validated, an all-zero branch
+  committee of an update whose branch proved its root, an all-zero branch
   carrying none (`receive_next`, `nextOk_empty`); the current committee only becomes the old next
   (`receive_current`); no period is skipped (`receive_period`, `committeeFor_live`); every verdict
   past the checks before BLS rests on two thirds (`passed_supermajority`); the anchor only moves
@@ -431,34 +432,26 @@ theorem receive_finalized_mono (c : Chain) (s : Store) (now : Nat) (u : Update) 
     s.finalized.beacon.slot ≤ (receive c s now u).1.finalized.beacon.slot := by
   rcases receive_finalized c s now u with h | ⟨_, _, h, hlt, _⟩ <;> rw [h]; omega
 
-/-- `mapPar` is `Array.map`: in the logic a task holds its value (`Task.spawn f = ⟨f ()⟩`). -/
-theorem mapPar_eq {α β : Type} (f : α → β) (a : Array α) : mapPar f a = a.map f := by
-  simp [mapPar, Array.map_map, Function.comp_def, Task.spawn]
-
-/-- The parallel validation is the sequential one: `(a.map f).mapM id = a.mapM f`. -/
-theorem mapPar_mapM {α β : Type} (f : α → Option β) (a : Array α) :
-    (mapPar f a).mapM id = a.mapM f := by
-  rw [mapPar_eq, Array.mapM_map]
-  rfl
-
-/-- A committee `Committee.ofSync` takes in: as many keys as the preset's committee, every one
-passing KeyValidate, and the committee's root. -/
+/-- A committee `Committee.ofSync` takes in: as many keys as the preset's committee, held as
+the committee's encodings, its aggregate key's, and the committee's root. No key is validated,
+as in the specification: that they are points of G1 and the aggregate their sum is the
+hypothesis `Committee.Consistent` (`LeanLightProofs.Signers`). -/
 theorem ofSync_keys {p : Preset} {sc : LeanLight.Lc.Ssz.SyncCommittee} {com : Committee}
     (h : Committee.ofSync p sc = some com) :
-    sc.pubkeys.size = p.committeeSize ∧ sc.pubkeys.mapM Bls.keyValidate? = some com.keys ∧
-      com.root = committeeRoot p sc := by
+    sc.pubkeys.size = p.committeeSize ∧ com.pubkeys = sc.pubkeys ∧
+      com.aggregate = sc.aggregatePubkey ∧ com.root = committeeRoot p sc := by
   unfold Committee.ofSync at h
   split at h
   · rename_i hs
-    simp only [Option.map_eq_some_iff] at h
-    obtain ⟨keys, hk, rfl⟩ := h
-    exact ⟨hs, (mapPar_mapM _ _).symm.trans hk, rfl⟩
+    obtain rfl := Option.some.inj h
+    exact ⟨hs, rfl, rfl, rfl⟩
   · cases h
 
 /-- **Committees (25f).** The current committee changes only to the store's next one, and the
 next only to none or to a committee the update brings: an update that passed every check under
 the current or next committee, whose next-committee branch proves that committee's root at the
-gindex of the attested slot's fork under the attested state root, every key passing KeyValidate.
+gindex of the attested slot's fork under the attested state root, as many keys as the preset's
+committee (`ofSync_keys`).
 An all-zero branch carries the empty committee, which never enters (`nextOk_empty`,
 `learn_some`). -/
 theorem receive_committees (c : Chain) (s : Store) (now : Nat) (u : Update) :
@@ -491,7 +484,7 @@ theorem receive_committees (c : Chain) (s : Store) (now : Nat) (u : Update) :
               rw [this] at he; cases he
             · rfl
           have hb := (nextOk_empty (formOk_parts hp.form).2.2.2.2.2).2 hsc
-          rw [← (ofSync_keys hs).2.2] at hb
+          rw [← (ofSync_keys hs).2.2.2] at hb
           exact .inr ⟨n, hn, hs, hb⟩
 
 theorem periodAt_mono (c : Chain) {a b : Nat} (h : a ≤ b) : c.periodAt a ≤ c.periodAt b := by
@@ -764,7 +757,7 @@ theorem overlap_512 {α : Type} [DecidableEq α] (U A B : Finset α) (hU : U.car
 /-- **Bootstrap binds the checkpoint (25e).** A store starts only from a bootstrap whose header is
 valid at its slot's fork, whose header root is the configured checkpoint, whose current committee
 is proved by its branch at the gindex of that slot's fork under the header's state root, whose
-keys all pass KeyValidate (`ofSync_keys`: as many as the preset's committee), with the checkpoint
+keys are as many as the preset's committee (`ofSync_keys`), with the checkpoint
 younger than `MAX_AGE` at the clock. It starts with that header finalized, that committee current,
 no next committee, nothing anchored, no verified slot, nothing kept but that committee's root,
 and not halted. -/
@@ -790,14 +783,16 @@ theorem bootstrap_sound {c : Chain} {cp : ByteArray} {now : Nat} {b : Bootstrap}
 
 /-! ## Domains and forks (25d) -/
 
-/-- **The signature check (25d)**: `FastAggregateVerify` over the participants' keys (the keys
-whose bit is set, in order), of the signing root of the attested header's root under
+/-- **The signature check (25d)**: FastAggregateVerify's check (`Bls.verifyAggregate`) of the
+participants' aggregate key (`signersKey?`: the sum of the keys whose bit is set, on a committee
+whose aggregate key is its keys' sum, `LeanLightProofs.Signers.signersKey?_eq`), of the signing
+root of the attested header's root under
 `compute_domain(DOMAIN_SYNC_COMMITTEE, version, genesis_validators_root)`, the version the fork
 table gives at the epoch of `max(signature_slot, 1) − 1`. -/
 theorem verifySignature_iff (c : Chain) (com : Committee) (u : Update) :
     verifySignature c com u = true ↔
       ∃ v, c.versionAt (c.epochAt (max u.signatureSlot 1 - 1)) = some v ∧
-        Bls.fastAggregateVerify (participants com.keys u.aggregate.bits)
+        Bls.verifyAggregate (signersKey? com u.aggregate.bits)
           (signingRoot u.attested.root (computeDomain domainSyncCommittee v c.genesisValidatorsRoot))
           u.aggregate.signature = true := by
   rw [← Forks.signatureVersion_eq]

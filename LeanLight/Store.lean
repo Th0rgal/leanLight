@@ -22,9 +22,13 @@ leanLight's departures (from leanKohakuDesktop):
   signature_slot` is not checked. Age is judged against `effNow`, the clock or the newest
   verified attested slot's time, whichever is later (G6), and `MAX_AGE` holds on every update
   (`fresh`).
-* **Keys are validated when a committee enters the store**: the bootstrap's, and each next
-  committee when it becomes the store's (`Committee.ofSync`, KeyValidate on each key), so the
-  signature check runs over validated keys.
+* **Committee keys are not validated**, as in the specification and Helios: a committee enters
+  the store as its keys' and aggregate key's 48-byte encodings (`Committee.ofSync`), proved by
+  its root. A signature check decodes only what it needs (`signersKey?`): when more than half
+  signed, the committee's aggregate key less the absent keys, else the participants' keys, with
+  no subgroup check. That the keys are in G1 and the aggregate their sum is the chain's: the
+  state transition's, which validated each key at deposit; the theorems that need it take it as
+  a hypothesis (`Committee.Consistent`, `LeanLightProofs.Store`).
 
 The objects are normalized, preset- and fork-independent forms of the SSZ containers
 (`LeanLight.Codec` builds them from the bytes): a `Header` keeps its beacon header, what its
@@ -151,21 +155,17 @@ def committeeRoot (p : Preset) (sc : SyncCommittee) : ByteArray :=
 /-- Whether a committee is `SyncCommittee.empty()`: every key zero. -/
 def committeeEmpty (sc : SyncCommittee) : Bool := allZero sc.pubkeys && isZero sc.aggregatePubkey
 
-/-- A committee the store holds: its root and its keys, each passed KeyValidate. -/
+/-- A committee the store holds: its root, its keys' 48-byte encodings and its aggregate key's,
+as the state holds them. -/
 structure Committee where
   root : ByteArray
-  keys : Array Bls.G1A
+  pubkeys : Array ByteArray
+  aggregate : ByteArray
 
-/-- `f` on every element of `a`, each in a task of its own, then read in order: `a.map f`
-(`LeanLightProofs.Store.mapPar_eq`; `Task.spawn` is `f` in the logic). -/
-def mapPar {α β : Type} (f : α → β) (a : Array α) : Array β :=
-  (a.map fun x => Task.spawn fun _ => f x).map Task.get
-
-/-- A committee taken in: as many keys as the preset's committee, each passing KeyValidate;
-`none` otherwise. The keys are validated in parallel (`mapPar`), then read in order. -/
+/-- A committee taken in: as many keys as the preset's committee; `none` otherwise. -/
 def Committee.ofSync (p : Preset) (sc : SyncCommittee) : Option Committee :=
   if sc.pubkeys.size = p.committeeSize then
-    ((mapPar Bls.keyValidate? sc.pubkeys).mapM id).map fun keys => ⟨committeeRoot p sc, keys⟩
+    some ⟨committeeRoot p sc, sc.pubkeys, sc.aggregatePubkey⟩
   else none
 
 /-- Bit `i` of an SSZ `Bitvector`: bit `i % 8` of byte `i / 8`. -/
@@ -175,8 +175,31 @@ def bit (bits : ByteArray) (i : Nat) : Bool := (Bytes.byteAt bits (i / 8)).toNat
 def popcount (n : Nat) (bits : ByteArray) : Nat := (List.range n).countP (bit bits)
 
 /-- The keys whose bit is set, in order. -/
-def participants (keys : Array Bls.G1A) (bits : ByteArray) : Array Bls.G1A :=
+def participants {α : Type} (keys : Array α) (bits : ByteArray) : Array α :=
   ((List.range keys.size).filterMap fun i => if bit bits i then keys[i]? else none).toArray
+
+/-- The keys whose bit is clear, in order. -/
+def absent {α : Type} (keys : Array α) (bits : ByteArray) : List α :=
+  (List.range keys.size).filterMap fun i => if bit bits i then none else keys[i]?
+
+/-- The participants' keys decoded (`g1Decompress?`, no subgroup check) and summed, as
+FastAggregateVerify aggregates them: `none` when one does not decode or the sum is the
+identity. -/
+def signersSum? (com : Committee) (bits : ByteArray) : Option Bls.G1A :=
+  ((participants com.pubkeys bits).mapM Bls.g1Decompress?).bind Bls.aggregate?
+
+/-- The key the participants signed under, as the store computes it: when more than half signed,
+the committee's aggregate key less the absent keys, each decoded (Helios's
+`get_participating_aggregate_pubkey`), so a few points are decoded rather than hundreds; else
+`signersSum?`. The two agree on a committee whose aggregate key is its keys' sum
+(`LeanLightProofs.Store.signersKey?_eq`). -/
+def signersKey? (com : Committee) (bits : ByteArray) : Option Bls.G1A :=
+  let out := absent com.pubkeys bits
+  if 2 * out.length < com.pubkeys.size then
+    match Bls.g1Decompress? com.aggregate, out.mapM Bls.g1Decompress? with
+    | some a, some ks => (ks.foldl (fun acc k => acc.addA k.neg) (Bls.G1J.ofAffine a)).toAffine?
+    | _, _ => none
+  else signersSum? com bits
 
 /-- Two thirds of the committee: `3·signers ≥ 2·SYNC_COMMITTEE_SIZE`. -/
 def supermajority (p : Preset) (signers : Nat) : Bool := decide (2 * p.committeeSize ≤ 3 * signers)
@@ -252,15 +275,15 @@ def formOk (c : Chain) (u : Update) : Bool :=
     decide (u.finalized.beacon.slot ≤ u.slot) && isValidHeader c u.attested && finalityOk c u &&
     nextOk c u
 
-/-- Step 9: the participants' keys (bit set, in order) under the committee, the fork version at
-the epoch of `max(signature_slot, 1) − 1`, the domain `compute_domain(DOMAIN_SYNC_COMMITTEE,
+/-- Step 9: the participants' aggregate key (`signersKey?`) under the committee, the fork version
+at the epoch of `max(signature_slot, 1) − 1`, the domain `compute_domain(DOMAIN_SYNC_COMMITTEE,
 version, genesis_validators_root)`, the signing root of the attested header's root, and
-`FastAggregateVerify`. -/
+`FastAggregateVerify`'s check of that key (`Bls.verifyAggregate`). -/
 def verifySignature (c : Chain) (com : Committee) (u : Update) : Bool :=
   match c.signatureVersion u.signatureSlot with
   | none => false
   | some v =>
-    Bls.fastAggregateVerify (participants com.keys u.aggregate.bits)
+    Bls.verifyAggregate (signersKey? com u.aggregate.bits)
       (signingRoot u.attested.root (computeDomain domainSyncCommittee v c.genesisValidatorsRoot))
       u.aggregate.signature
 
@@ -640,7 +663,7 @@ def Witness.verify (c : Chain) (com : Committee) (w : Witness) : Bool :=
     match c.signatureVersion w.signatureSlot with
     | none => false
     | some v =>
-      Bls.fastAggregateVerify (participants com.keys w.aggregate.bits)
+      Bls.verifyAggregate (signersKey? com w.aggregate.bits)
         (signingRoot w.attested.root (computeDomain domainSyncCommittee v c.genesisValidatorsRoot))
         w.aggregate.signature
 

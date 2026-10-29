@@ -857,7 +857,7 @@ theorem fastAggregateVerifyBytes_eq_eth (hcube : MillerLoopsCube) (pks : Array B
     rw [Eth.G1.zero_spec.2, zero_add] at hEa
     have hagg := aggregate?_spec ks.toArray (by simpa using hks')
     simp only at hagg
-    unfold fastAggregateVerify
+    unfold fastAggregateVerify verifyAggregate
     rw [fastAggregateVerify_match_3]
     revert hagg
     cases aggregate? ks.toArray with
@@ -965,7 +965,7 @@ theorem fastAggregateVerifyBytes_identitySig (pks : Array ByteArray) (msg : Byte
   | none => rfl
   | some keys =>
     dsimp only
-    unfold fastAggregateVerify
+    unfold fastAggregateVerify verifyAggregate
     rw [fastAggregateVerify_match_3]
     cases aggregate? keys with
     | none => rfl

@@ -5,11 +5,10 @@ import LeanLightTests.Fixture
 mainnet runs (`fixtures/`, `leanlight record`): no network, so only the light client's own work.
 Each step is timed `N` times (default 9), the median printed in milliseconds:
 
-- `bootstrap`: decoding and `Store.bootstrap` (the checkpoint's root, the committee's branch, its
-  512 keys through KeyValidate, in parallel over the cores Lean's task manager has:
-  `LEAN_NUM_THREADS`);
+- `bootstrap`: decoding and `Store.bootstrap` (the checkpoint's root and the committee's branch;
+  its keys are kept as bytes, not validated);
 - `period update`: each `/updates` chunk through `Store.receive` (a signature, and the next
-  committee's 512 keys);
+  committee's root);
 - `finality`, `optimistic`: one signature each;
 - `header`: binding the anchored block's header (`Anchor.bind`: RLP and Keccak-256);
 - `reads`: every recorded read's proofs checked (`Driver.read`, `codeOk`).

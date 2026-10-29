@@ -21,6 +21,7 @@ import LeanLightProofs.Forks
 import LeanLightProofs.History
 import LeanLightProofs.Inclusion
 import LeanLightProofs.Sha256
+import LeanLightProofs.Signers
 import LeanLightProofs.Spec.Common
 import LeanLightProofs.Spec.Header
 import LeanLightProofs.Spec.Mpt
