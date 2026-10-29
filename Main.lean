@@ -6,6 +6,8 @@ import LeanLightCli.Client
 ```
 leanlight [--network mainnet|sepolia] --consensus-rpc URL [--execution-rpc URL]
           [--checkpoint 0xROOT] [--json] [-v] COMMAND
+
+--execution-rpc is required by every command but `sync`.
 COMMAND:
   sync                    sync and print the finalized and anchored heads
   block-number            the anchored execution block's number
@@ -19,6 +21,10 @@ COMMAND:
 
 Every value printed comes out of `LeanLight`'s checked readers. Timings go to standard error
 (or into the JSON lines with `--json`): wall time, time waiting on the network, time verifying.
+
+The arguments are checked before anything is fetched: options, the checkpoint's length, and
+every read (a file's lines included). In `queries` mode a line that does not parse is reported,
+and the other lines are read.
 -/
 
 open LeanLight.Cli
@@ -33,83 +39,109 @@ structure Args where
   verbose : Bool := false
   rest : List String := []
 
+/-- The options that take a value. -/
+def valued : List String := ["--network", "--consensus-rpc", "--execution-rpc", "--checkpoint"]
+
 partial def parseArgs : List String → Args → Except String Args
   | [], a => pure { a with rest := a.rest.reverse }
-  | "--network" :: v :: r, a => parseArgs r { a with network := v }
-  | "--consensus-rpc" :: v :: r, a => parseArgs r { a with consensus := some v }
-  | "--execution-rpc" :: v :: r, a => parseArgs r { a with execution := some v }
-  | "--checkpoint" :: v :: r, a => parseArgs r { a with checkpoint := some v }
-  | "--json" :: r, a => parseArgs r { a with json := true }
-  | "-v" :: r, a => parseArgs r { a with verbose := true }
-  | x :: r, a =>
-    if x.startsWith "--" then throw s!"unknown option {x}" else parseArgs r { a with rest := x :: a.rest }
+  | [o], a =>
+    if valued.contains o then throw s!"{o} needs a value"
+    else if o == "--json" then pure { a with json := true, rest := a.rest.reverse }
+    else if o == "-v" then pure { a with verbose := true, rest := a.rest.reverse }
+    else if o.startsWith "-" then throw s!"unknown option {o}"
+    else pure { a with rest := (o :: a.rest).reverse }
+  | o :: v :: r, a =>
+    if valued.contains o then
+      if v.startsWith "--" then throw s!"{o} needs a value, got {v}"
+      else match o with
+        | "--network" => parseArgs r { a with network := v }
+        | "--consensus-rpc" => parseArgs r { a with consensus := some v }
+        | "--execution-rpc" => parseArgs r { a with execution := some v }
+        | _ => parseArgs r { a with checkpoint := some v }
+    else if o == "--json" then parseArgs (v :: r) { a with json := true }
+    else if o == "-v" then parseArgs (v :: r) { a with verbose := true }
+    else if o.startsWith "-" then throw s!"unknown option {o}"
+    else parseArgs (v :: r) { a with rest := o :: a.rest }
 
 def usage : String :=
   "usage: leanlight [--network mainnet|sepolia] --consensus-rpc URL [--execution-rpc URL] " ++
   "[--checkpoint 0xROOT] [--json] [-v] (sync | block-number | balance ADDR | nonce ADDR | " ++
-  "code ADDR | storage ADDR SLOT... | queries FILE)"
+  "code ADDR | storage ADDR SLOT... | queries FILE); --execution-rpc is required but for sync"
 
-def jstr (s : String) : String := (Json.str s).compress
+/-! ## Reads, checked before anything is fetched -/
 
-def emit (json : Bool) (fields : List (String × String)) (text : String) : IO Unit := do
-  if json then
-    IO.println ("{" ++ ", ".intercalate (fields.map fun (k, v) => s!"{jstr k}: {v}") ++ "}")
-  else IO.println text
+/-- A read, its arguments parsed. -/
+inductive Query where
+  | blockNumber
+  | balance (text : String) (addr : ByteArray)
+  | nonce (text : String) (addr : ByteArray)
+  | code (text : String) (addr : ByteArray)
+  | storage (text : String) (addr : ByteArray) (slots : List String) (keys : List ByteArray)
 
-def hexArg (what s : String) : IO ByteArray := do
+def hexArg (what s : String) : Except String ByteArray :=
   match hexBytes s with
   | some b => pure b
-  | none => die s!"{what}: not hex: {s}"
+  | none => throw s!"{what}: not hex: {s}"
 
-def addrArg (s : String) : IO ByteArray := do
+def addrArg (s : String) : Except String ByteArray := do
   let b ← hexArg "address" s
-  if b.size != 20 then die s!"address: not 20 bytes: {s}"
+  if b.size != 20 then throw s!"address: not 20 bytes: {s}"
   pure b
 
-def slotArg (s : String) : IO ByteArray := do
+def slotArg (s : String) : Except String ByteArray := do
   let b ← hexArg "slot" s
-  if b.size > 32 then die s!"slot: more than 32 bytes: {s}"
+  if b.size > 32 then throw s!"slot: more than 32 bytes: {s}"
   pure (ByteArray.mk (List.replicate (32 - b.size) (0 : UInt8)).toArray ++ b)
 
-/-- The calls a read makes at the block `hash` (`runQuery`'s, so the batch answers them). -/
-def callsOf (hash : ByteArray) (q : List String) : IO (List (String × Json)) := do
-  match q with
-  | ["balance", a] | ["nonce", a] => return [proofCall (← addrArg a) [] hash]
-  | ["code", a] => let addr ← addrArg a; return [proofCall addr [] hash, codeCall addr hash]
-  | "storage" :: a :: slots@(_ :: _) => return [proofCall (← addrArg a) (← slots.mapM slotArg) hash]
-  | _ => return []
+/-- A read from its words, or why not. -/
+def parseQuery : List String → Except String Query
+  | ["block-number"] => pure .blockNumber
+  | ["balance", a] => return .balance a (← addrArg a)
+  | ["nonce", a] => return .nonce a (← addrArg a)
+  | ["code", a] => return .code a (← addrArg a)
+  | "storage" :: a :: slots@(_ :: _) => return .storage a (← addrArg a) slots (← slots.mapM slotArg)
+  | ["storage", _] => throw "storage: no slot"
+  | q => throw s!"unknown read: {" ".intercalate q}"
 
-/-- One read at the anchored block; returns the JSON fields and the text line. -/
-def runQuery (cfg : Config) (b : Anchored) (q : List String) :
-    IO (List (String × String) × String) := do
-  let blk := b.el.number
-  match q with
-  | ["block-number"] => pure ([("q", jstr "block-number"), ("value", toString blk)], s!"{blk}")
-  | ["balance", a] =>
-    let r ← readAccount cfg b (← addrArg a) []
-    pure ([("q", jstr "balance"), ("addr", jstr a), ("block", toString blk),
-      ("value", jstr (natHex r.account.balance))], s!"{r.account.balance}")
-  | ["nonce", a] =>
-    let r ← readAccount cfg b (← addrArg a) []
-    pure ([("q", jstr "nonce"), ("addr", jstr a), ("block", toString blk),
-      ("value", jstr (natHex r.account.nonce))], s!"{r.account.nonce}")
-  | ["code", a] =>
-    let addr ← addrArg a
+/-- The calls a read makes at the block `hash` (`runQuery`'s, so the batch answers them). -/
+def callsOf (hash : ByteArray) : Query → List (String × Json)
+  | .blockNumber => []
+  | .balance _ a | .nonce _ a => [proofCall a [] hash]
+  | .code _ a => [proofCall a [] hash, codeCall a hash]
+  | .storage _ a _ ks => [proofCall a ks hash]
+
+/-! ## Output -/
+
+/-- A number as JSON. -/
+def jn (n : Nat) : Json := .num (toString n)
+
+def emit (json : Bool) (fields : List (String × Json)) (text : String) : IO Unit := do
+  if json then IO.println (Json.mkObj fields).compress else IO.println text
+
+/-- One read at the anchored block: its JSON fields and its text line. -/
+def runQuery (cfg : Config) (b : Anchored) : Query → IO (List (String × Json) × String)
+  | .blockNumber =>
+    pure ([("q", Json.str "block-number"), ("value", (jn b.el.number))], s!"{b.el.number}")
+  | .balance a addr => do
+    let r ← readAccount cfg b addr []
+    pure ([("q", Json.str "balance"), ("addr", Json.str a), ("block", (jn b.el.number)),
+      ("value", Json.str (natHex r.account.balance))], s!"{r.account.balance}")
+  | .nonce a addr => do
+    let r ← readAccount cfg b addr []
+    pure ([("q", Json.str "nonce"), ("addr", Json.str a), ("block", (jn b.el.number)),
+      ("value", Json.str (natHex r.account.nonce))], s!"{r.account.nonce}")
+  | .code a addr => do
     let r ← readAccount cfg b addr []
     let code ← readCode cfg b addr r.account.codeHash
-    pure ([("q", jstr "code"), ("addr", jstr a), ("block", toString blk),
-      ("value", jstr (toHexL r.account.codeHash)), ("size", toString code.size)],
+    pure ([("q", Json.str "code"), ("addr", Json.str a), ("block", (jn b.el.number)),
+      ("value", Json.str (toHexL r.account.codeHash)), ("size", (jn code.size))],
       s!"{toHexL r.account.codeHash} ({code.size} bytes)")
-  | "storage" :: a :: slots =>
-    if slots.isEmpty then die "storage: no slot"
-    let ss ← slots.mapM slotArg
-    let r ← readAccount cfg b (← addrArg a) ss
+  | .storage a addr slots ks => do
+    let r ← readAccount cfg b addr ks
     let words := r.slots.map fun v => toHexL (beN 32 v)
-    pure ([("q", jstr "storage"), ("addr", jstr a), ("block", toString blk),
-      ("slots", (Json.arr (slots.toArray.map Json.str)).compress),
-      ("value", (Json.arr (words.toArray.map Json.str)).compress)],
-      " ".intercalate words)
-  | _ => die s!"unknown query: {" ".intercalate q}"
+    pure ([("q", Json.str "storage"), ("addr", Json.str a), ("block", (jn b.el.number)),
+      ("slots", Json.arr (slots.toArray.map Json.str)),
+      ("value", Json.arr (words.toArray.map Json.str))], " ".intercalate words)
 
 def timed {α} (act : IO α) : IO (α × Nat × Timing) := do
   timing.set {}
@@ -118,64 +150,91 @@ def timed {α} (act : IO α) : IO (α × Nat × Timing) := do
   let t1 ← IO.monoMsNow
   return (a, t1 - t0, ← timing.get)
 
-def timingFields (ms : Nat) (t : Timing) : List (String × String) :=
-  [("ms", toString ms), ("net_ms", toString t.netMs), ("verify_ms", toString t.verifyMs),
-   ("requests", toString t.requests), ("bytes", toString t.bytes)]
+def timingFields (ms : Nat) (t : Timing) : List (String × Json) :=
+  [("ms", (jn ms)), ("net_ms", (jn t.netMs)), ("verify_ms", (jn t.verifyMs)),
+   ("requests", (jn t.requests)), ("bytes", (jn t.bytes))]
 
 def timingText (ms : Nat) (t : Timing) : String :=
   s!"{ms} ms (network {t.netMs} ms in {t.requests} requests, {t.bytes} bytes; verify {t.verifyMs} ms)"
 
+/-- What the command asks for: nothing more than the sync, one read, or a file's reads (each
+line's, or why it does not parse). -/
+inductive Command where
+  | sync
+  | one (q : Query)
+  | many (lines : List (String × Except String Query))
+
+def parseCommand : List String → IO (Except String Command)
+  | [] | ["sync"] => pure (.ok .sync)
+  | ["queries", file] => do
+    let lines ← try (pure (Except.ok (← IO.FS.lines file))) catch e => pure (.error s!"{file}: {e}")
+    return lines.map fun ls =>
+      let ls := ls.toList.map (·.trimAscii.toString) |>.filter fun l => !l.isEmpty && !l.startsWith "#"
+      .many (ls.map fun l => (l, parseQuery ((l.splitOn " ").filter (· ≠ ""))))
+  | q => pure ((parseQuery q).map .one)
+
+def fail (msg : String) : IO UInt32 := do
+  IO.eprintln s!"error: {msg}"
+  IO.eprintln usage
+  return 2
+
 def main (argv : List String) : IO UInt32 := do
   let args ← match parseArgs argv {} with
     | .ok a => pure a
-    | .error e => IO.eprintln e; IO.eprintln usage; return 2
+    | .error e => return ← fail e
   verbose.set args.verbose
   let some chain := (match args.network with
       | "mainnet" => some Forks.mainnet
       | "sepolia" => some Forks.sepolia
       | _ => none)
-    | IO.eprintln s!"unknown network {args.network}"; return 2
-  let some consensus := args.consensus | IO.eprintln usage; return 2
-  let checkpoint ← args.checkpoint.mapM (hexArg "checkpoint")
-  let cfg : Config := { chain, consensus, execution := args.execution.getD "", checkpoint }
+    | fail s!"unknown network {args.network}"
+  let some consensus := args.consensus | fail "--consensus-rpc is required"
+  let checkpoint ← match args.checkpoint.mapM (hexArg "checkpoint") with
+    | .ok (some c) => if c.size == 32 then pure (some c) else return ← fail "checkpoint: not 32 bytes"
+    | .ok none => pure none
+    | .error e => return ← fail e
+  let command ← match ← parseCommand args.rest with
+    | .ok c => pure c
+    | .error e => return ← fail e
+  let execution := args.execution.getD ""
+  if execution.isEmpty && !(command matches .sync) then
+    return ← fail "--execution-rpc is required to read"
+  let cfg : Config := { chain, consensus, execution, checkpoint }
   try
     let (sy, ms, t) ← timed (sync cfg)
     let s := sy.store
     let anchor := s.anchor.map (·.header.beacon.slot)
-    emit args.json ([("phase", jstr "sync"), ("finalized_slot", toString s.finalized.beacon.slot),
-        ("anchor_slot", toString (anchor.getD 0)), ("updates", toString sy.updates),
-        ("accepted", toString sy.accepted),
-        ("refused", (Json.arr (sy.refused.reverse.toArray.map Json.str)).compress)] ++
-        timingFields ms t)
+    emit args.json ([("phase", Json.str "sync"), ("finalized_slot", (jn s.finalized.beacon.slot)),
+        ("anchor_slot", (jn (anchor.getD 0))), ("updates", (jn sy.updates)),
+        ("accepted", (jn sy.accepted)),
+        ("refused", Json.arr (sy.refused.reverse.toArray.map Json.str))] ++ timingFields ms t)
       s!"synced: finalized slot {s.finalized.beacon.slot}, anchor slot {anchor.getD 0}, {sy.updates} updates ({sy.accepted} accepted{if sy.refused.isEmpty then "" else s!", refused: {sy.refused.reverse}"}) in {timingText ms t}"
-    match args.rest with
-    | [] | ["sync"] => pure ()
-    | ["queries", file] =>
-      let lines := (← IO.FS.lines file).toList.filter fun l =>
-        let l := l.trimAscii.toString
-        !l.isEmpty && !l.startsWith "#"
-      let qs := lines.map fun l => (l.trimAscii.toString.splitOn " ").filter (· ≠ "")
+    match command with
+    | .sync => pure ()
+    | .many lines =>
+      let qs := lines.filterMap fun (_, q) => q.toOption
       -- the block's header and every read's proofs and code, in one JSON-RPC batch
       let (b, ms, t) ← timed do
         let hash ← anchorHash cfg s
-        let calls ← qs.flatMapM (fun q => (try callsOf hash q catch _ => pure []))
-        prefetch cfg.execution (blockCall hash :: calls)
+        prefetch cfg.execution (blockCall hash :: qs.flatMap (callsOf hash))
         anchoredBlock cfg s
-      emit args.json ([("phase", jstr "anchor"), ("block", toString b.el.number),
-          ("hash", jstr (toHex b.hash)), ("reads", toString qs.length)] ++ timingFields ms t)
+      emit args.json ([("phase", Json.str "anchor"), ("block", (jn b.el.number)),
+          ("hash", Json.str (toHex b.hash)), ("reads", (jn qs.length))] ++ timingFields ms t)
         s!"anchored block {b.el.number} {toHex b.hash}, {qs.length} reads fetched in {timingText ms t}"
-      for l in lines do
-        let q := (l.trimAscii.toString.splitOn " ").filter (· ≠ "")
-        try
-          let ((fs, text), ms, t) ← timed (runQuery cfg b q)
-          emit args.json (fs ++ timingFields ms t) s!"{l.trimAscii}: {text}   [{timingText ms t}]"
-        catch e =>
-          emit args.json [("q", jstr l.trimAscii.toString), ("error", jstr (toString e))]
-            s!"{l.trimAscii}: error: {e}"
-    | q =>
+      for (l, q) in lines do
+        match q with
+        | .error e =>
+          emit args.json [("q", Json.str l), ("error", Json.str e)] s!"{l}: error: {e}"
+        | .ok q =>
+          try
+            let ((fs, text), ms, t) ← timed (runQuery cfg b q)
+            emit args.json (fs ++ timingFields ms t) s!"{l}: {text}   [{timingText ms t}]"
+          catch e =>
+            emit args.json [("q", Json.str l), ("error", Json.str (toString e))] s!"{l}: error: {e}"
+    | .one q =>
       let ((fs, text), ms, t) ← timed do
         let hash ← anchorHash cfg s
-        prefetch cfg.execution (blockCall hash :: (← callsOf hash q))
+        prefetch cfg.execution (blockCall hash :: callsOf hash q)
         let b ← anchoredBlock cfg s
         runQuery cfg b q
       emit args.json (fs ++ timingFields ms t) text
