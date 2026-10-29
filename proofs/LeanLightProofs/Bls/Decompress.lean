@@ -21,7 +21,7 @@ identity clear, the sign flag `y`'s `fLarge` or `Fp2.large`, since no point of `
 `y = 0`, `E1_y_ne_zero`, `E2_y_ne_zero`), and `x` fixes the remaining bits (`beNat` is base 256,
 `foldl_bytes_inj`). That the one encoding accepted is `p.compress`, and that every point's
 compression decodes (completeness), is not proved here (`natBe`'s side of the round trip is left;
-see `spec/INVARIANTS.md` 25c).
+see leanKohakuDesktop's `spec/INVARIANTS.md` 25c).
 
 The decoders' matches are rewritten to `Option.elim` first (`g1Decompress?_eq` and the like):
 reducing them in place has the kernel evaluate `Nat.powMod` on a symbolic argument.

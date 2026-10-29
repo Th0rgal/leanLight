@@ -7,13 +7,13 @@ release asset `mainnet.tar.gz`
 SHA-256 `67762986572372a08d3b182535aa760433c86e174e14e0bbd756f350dd19398c`, fetched
 2026-10-26). `SHA256SUMS` lists every file here.
 
-`lake exe lkd-ssz-test` (from `proofs/tests`) checks them against `LkdLc.Ssz`
-(`LkdTests/Ssz.lean`); nothing here runs in the wallet.
+`lake exe leanlight-ssz-test` (from `tests`) checks them against `LeanLight.Ssz`
+(`LeanLightTests/Ssz.lean`); nothing here runs in the client.
 
 ## What is here
 
 - `ssz_static/<fork>/<type>/case_{0,1}`: `serialized.ssz` and its `root` (from `roots.yaml`), the
-  first two `ssz_random` cases of each type `LkdLc.Ssz` decodes: `BeaconBlockHeader`,
+  first two `ssz_random` cases of each type `LeanLight.Ssz` decodes: `BeaconBlockHeader`,
   `SyncCommittee`, `SyncAggregate`, `ExecutionPayloadHeader` and `LightClient{Header,Bootstrap,
   Update,FinalityUpdate,OptimisticUpdate}` of Electra; `ExecutionPayloadHeader` and the five
   `LightClient*` of Fulu; `BeaconBlockHeader` and the five `LightClient*` of Gloas. 42 cases.
@@ -24,7 +24,7 @@ SHA-256 `67762986572372a08d3b182535aa760433c86e174e14e0bbd756f350dd19398c`, fetc
   value a line, from `proof.yaml`) for every light-client proof of Electra, Fulu and Gloas: the
   `BeaconState`'s committees and finalized root, the `BeaconBlockBody`'s execution payload
   (Electra, Fulu) and execution block hash (Gloas). 12 cases. Each gindex must be the one
-  `LkdLc.Ssz` pins, each branch as long as its depth; the branch must verify under the root it
+  `LeanLight.Ssz` pins, each branch as long as its depth; the branch must verify under the root it
   climbs to, with a leading zero root added too, and fail with a leading non-zero root, a short
   branch, another leaf, a deeper gindex, the sibling's gindex (unless leaf and sibling are equal)
   or any node altered. `object.sha256` is the SHA-256 of the decompressed object; the
@@ -33,8 +33,8 @@ SHA-256 `67762986572372a08d3b182535aa760433c86e174e14e0bbd756f350dd19398c`, fetc
 
 **Not checked**: that the root a branch climbs to is the object's `hash_tree_root`. That needs
 `hash_tree_root` of a whole `BeaconState` or `BeaconBlockBody`, which the light client never
-computes and `LkdLc.Ssz` does not implement. The gindices themselves are proved
-(`LkdProofs.Lc.SszGindex`); the vectors check them against the specification's own proofs.
+computes and `LeanLight.Ssz` does not implement. The gindices themselves are proved
+(`LeanLightProofs.SszGindex`); the vectors check them against the specification's own proofs.
 
 ## Regenerating
 

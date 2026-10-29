@@ -2,7 +2,7 @@
 # Read decisions specification
 
 Which block to read at is no longer decided here: the light client's anchor, or one endpoint's
-word (decided 2026-10-28: no quorum, `spec/04-verified-reads.md`).
+word (decided 2026-10-28: no quorum, leanKohakuDesktop's `spec/04-verified-reads.md`).
 
 **Base fee** (EIP-1559, `calculate_base_fee_per_gas` in the EIP's specification, with
 `ELASTICITY_MULTIPLIER = 2` and `BASE_FEE_MAX_CHANGE_DENOMINATOR = 8`, `elasticityMultiplier` and

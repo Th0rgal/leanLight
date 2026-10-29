@@ -7,9 +7,8 @@ CC0-1.0), for Electra, Fulu and Gloas, decompressed from the release asset `mini
 SHA-256 `26d09aea70c62ed235a120a95082d544ab1c2e6fe36bd35ea1bd5da62f3b7b68`, fetched 2026-10-26).
 Every case of those directories is here: 1.3 MB. `SHA256SUMS` lists every file.
 
-`lake exe lkd-lc-store-test` (from `proofs/tests`, run by `just lc`) runs them on `LkdLc.Store`
-with the minimal preset's decoders (`LkdLcDev`), under spec/16's rules ("Testing"), then lkd's own
-cases (`LkdTests/Store/Own.lean`, `Synth.lean`); nothing here runs in the wallet.
+`lake exe leanlight-store-test` (from `tests`) runs them on `LeanLight.Store`
+with the minimal preset's decoders (`LeanLightDev`), under leanKohakuDesktop's spec/16 rules ("Testing"); nothing here runs in the client.
 
 ## What is here
 
@@ -27,9 +26,9 @@ cases (`LkdTests/Store/Own.lean`, `Synth.lean`); nothing here runs in the wallet
 - Each update is decoded as the fork its digest names, which must be the fork of its attested
   slot, and must be accepted.
 - After each step, the finalized header's `slot`, `beacon_root` and `execution_root` are compared,
-  and the optimistic header's against the anchor or the finalized header, whichever is newer: lkd
+  and the optimistic header's against the anchor or the finalized header, whichever is newer: leanLight
   has no optimistic header, and every step has full participation. Now is `slotTime(current_slot)`.
-- A `force_update` whose checks differ from the previous step's forces an update, which lkd never
+- A `force_update` whose checks differ from the previous step's forces an update, which leanLight never
   does (N6): it and the rest of its case are reported **unsupported**, not failed. In
   `light_client_sync` that is steps 6 to 10 of each fork; `*_no_force_update`'s is a no-op.
 - `upgrade_store` changes nothing: the store keeps each header in the form it was validated in.

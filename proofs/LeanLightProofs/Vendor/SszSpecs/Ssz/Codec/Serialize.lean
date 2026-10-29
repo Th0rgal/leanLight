@@ -4,7 +4,7 @@ Released under the MIT license as described in the file `LeanLightProofs/Vendor/
 
 `lean/Ssz/Codec/Serialize.lean` of github.com/ethereum/ssz-specs at commit
 `3394318c67b08896a5406e15f10e02508a2f1332`, vendored as a specification
-(spec/16-light-client.md, "Sources"): ssz-specs does not build as a Lake dependency on Lean
+(leanKohakuDesktop's spec/16-light-client.md, "Sources"): ssz-specs does not build as a Lake dependency on Lean
 4.35, its lakefile turning deprecation warnings into errors; in this package, which does not,
 they stay warnings. Nothing of it runs in the wallet. Repairs: its imports `Ssz.*` are renamed
 `LeanLightProofs.Vendor.SszSpecs.Ssz.*`; `private` is dropped from its 8 declarations, its two `csimp`

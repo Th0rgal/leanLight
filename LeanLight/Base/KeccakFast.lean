@@ -7,7 +7,7 @@ import LeanLight.Base.Keccak
 `Array UInt64` whose 25 lanes are boxed, rebuilt with `List.range` maps in each of the 24 rounds,
 and its sponge XORs the input in one byte at a time. Compiled as it is, it costs about 15 µs per
 136-byte block. This file is the same function written for the compiler, about 40 times faster
-(`spec/01-keyd.md`, "Cost"), and `keccak256_eq_fast` proves the two equal on every input.
+(leanKohakuDesktop's `spec/01-keyd.md`, "Cost"), and `keccak256_eq_fast` proves the two equal on every input.
 Registered as a `csimp` equation, it makes every definition compiled after this file is
 imported call `keccak256Fast` wherever its source says `keccak256` (AGENTS.md, "Runtime Lean"),
 while every statement, and every proof about `keccak256`, keeps meaning the readable one.

@@ -9,7 +9,7 @@ The light client's store (leanKohakuDesktop's `spec/16-light-client.md`, "The pr
 v1.7.0-beta.4's `initialize_light_client_store`, `validate_light_client_update`,
 `process_light_client_update`, `apply_light_client_update` and `is_better_update`
 (`altair/light-client/sync-protocol.md`, as Capella, Deneb, Electra and Gloas amend them), with
-lkd's departures:
+leanKohakuDesktop's departures:
 
 * **No forced update and no optimistic header.** An update below two thirds of the committee
   (`3·signers ≥ 2·size`) is refused before BLS; the anchor is the newest attested header two
@@ -243,7 +243,7 @@ def nextOk (c : Chain) (u : Update) : Bool :=
       u.attested.beacon.stateRoot
 
 /-- The checks of `validate_light_client_update` that need neither the store nor BLS: two thirds
-of the committee signed (step 2, lkd's threshold, which implies
+of the committee signed (step 2, leanKohakuDesktop's threshold, which implies
 `MIN_SYNC_COMMITTEE_PARTICIPANTS`); `signature_slot > attested slot ≥ finalized slot` (step 3,
 without the clock); the attested header valid at its own slot's fork, and the finalized header
 and the next committee proved under its state root (steps 6 and 7). -/
@@ -355,7 +355,7 @@ def clockBehind (c : Chain) (s : Store) (now : Nat) : Bool :=
 
 /-! ## Bootstrap -/
 
-/-- `initialize_light_client_store`, with lkd's checks: the header is valid at its slot's fork,
+/-- `initialize_light_client_store`, with leanKohakuDesktop's checks: the header is valid at its slot's fork,
 its root is the configured checkpoint, the current committee is proved by its branch at the
 fork's gindex under the header's state root, the checkpoint is younger than `MAX_AGE` at `now`,
 and every key passes KeyValidate. The store starts with that header finalized, that committee

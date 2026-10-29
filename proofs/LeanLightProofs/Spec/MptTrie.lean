@@ -22,7 +22,7 @@ of `k` that geth's `Trie.Prove` builds (what its `eth_getProof` returns), in the
 hash (an inline node is inside its parent). Not every node sends that proof: anvil (seen on 1.5.1)
 also lists each inline node on the path as an item of its own, which `lookup` refuses as sent (the
 `#guard`s at the end of the file build one); `lkd-netd` drops those items before `lookup`
-(`reads::proof_nodes`, tested, not proved: `spec/04-verified-reads.md`). That happens in storage
+(`reads::proof_nodes`, tested, not proved: leanKohakuDesktop's `spec/04-verified-reads.md`). That happens in storage
 tries, where a node below the root can be shorter than 32 bytes (a state trie's leaves hold
 accounts, 70 bytes at least). For an empty trie geth sends nothing where `proofOf` is `0x80`;
 `lookup_empty` accepts both. `get I k` is what `I` holds at `k`. The roots of `ethereum/tests`'
