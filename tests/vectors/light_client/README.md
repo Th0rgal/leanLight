@@ -8,7 +8,7 @@ SHA-256 `26d09aea70c62ed235a120a95082d544ab1c2e6fe36bd35ea1bd5da62f3b7b68`, fetc
 Every case of those directories is here: 1.3 MB. `SHA256SUMS` lists every file.
 
 `lake exe leanlight-store-test` (from `tests`) runs them on `LeanLight.Store`
-with the minimal preset's decoders (`LeanLightDev`), under leanKohakuDesktop's spec/16 rules ("Testing"); nothing here runs in the client.
+with the minimal preset's decoders (`LeanLightDev`), under docs/spec-16-light-client.md's rules ("Testing"); nothing here runs in the client.
 
 ## What is here
 

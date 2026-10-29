@@ -75,7 +75,7 @@ theorem reduced_finalExp (f : Fp12) : (finalExp f).Reduced := by
 
 /-- H_vec's equation for one check: the runtime's `finalExp m` stands for the cube of EthLib's
 `finalExponentiation acc`. A hypothesis: zkcrypto's chain, its cyclotomic squarings and the
-two Miller loops are checked by vectors (leanKohakuDesktop's `spec/16-light-client.md`, H_vec), not proved. -/
+two Miller loops are checked by vectors (`docs/spec-16-light-client.md`, H_vec), not proved. -/
 def FinalExpCube (m : Fp12) (acc : EthLib.Cryptography.Bls.Fp12) : Prop :=
   (finalExp m).toGF = (ofEth12 (finalExponentiation acc)).toGF ^ 3
 

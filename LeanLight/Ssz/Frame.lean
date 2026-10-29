@@ -6,7 +6,7 @@ import LeanLight.Ssz.Merkle
 **Framing.** An SSZ answer to `GET /eth/v1/beacon/light_client/updates` (beacon-APIs `79b9b05`,
 `updates.yaml:43-69`) is a run of chunks, each a little-endian `uint64` length, a 4-byte fork
 digest, then the update's SSZ, and **the length counts the digest**: length = 4 + the SSZ's
-length (leanKohakuDesktop's `spec/16-light-client.md`, "The beacon API"). `parseUpdates` reads at most
+length (`docs/spec-16-light-client.md`, "The beacon API"). `parseUpdates` reads at most
 `maxRequestUpdates` (128, `MAX_REQUEST_LIGHT_CLIENT_UPDATES`) chunks and refuses the whole
 answer on a length below 4, a chunk past the end, or bytes left over; `LeanLightProofs.SszFrame`
 proves it inverse to `encodeUpdates`.
@@ -14,7 +14,7 @@ proves it inverse to `encodeUpdates`.
 **Re-encoded chunks.** netd re-encodes a JSON answer to SSZ for a source that serves no SSZ
 (open decision 1), and tags each item with a fork byte instead of a digest: `u64le(1 + |ssz|)`,
 the fork (`0` Electra, `1` Fulu, `2` Gloas, the evidence's numbering), the SSZ (the channel's
-`Updates` response of form `1`, leanKohakuDesktop's `spec/16-light-client.md`, "Frame layouts"). `parseForkUpdates`
+`Updates` response of form `1`, `docs/spec-16-light-client.md`, "Frame layouts"). `parseForkUpdates`
 reads at most 128 such chunks and refuses a length below 1, a fork byte above 2, a chunk past the
 end, or bytes left over; `LeanLightProofs.SszFrame` proves it inverse to `encodeForkUpdates` both
 ways.

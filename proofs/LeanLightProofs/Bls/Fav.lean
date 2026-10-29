@@ -14,7 +14,7 @@ signature passes its checks as a point `σ` (on `E'`, `[r]σ = O`, not the ident
 (`fastAggregateVerify_iff`, and `fastAggregateVerifyBytes_iff` over the keys' bytes), for any
 map `e` from the points of `E` and `E'` to a commutative group that is additive in its first
 argument on G1 × G2, given three hypotheses, never axioms (the first and third H_vec's,
-leanKohakuDesktop's `spec/16-light-client.md`; the second proved since):
+`docs/spec-16-light-client.md`; the second proved since):
 
 * `PairingCheckIs e`: on reduced points of the subgroups G1 of `E` and G2 of `E'` (`[r]P = O`,
   `[r]Q = O`), the runtime's `pairingCheck` of two pairs is true exactly when the product of

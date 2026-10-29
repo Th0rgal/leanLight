@@ -1,7 +1,7 @@
 /-!
 # BLS12-381: the base field `Fp`, on `Nat`
 
-The fast layer of the light client's BLS12-381 (leanKohakuDesktop's `spec/16-light-client.md`, "Cryptography in
+The fast layer of the light client's BLS12-381 (`docs/spec-16-light-client.md`, "Cryptography in
 Lean"), moved from the benchmark of 2026-10-24 (`Bls/Field.lean`, written for lkd), whose
 measurements are in "Speed". Its readable specification is EthLib's, vendored in
 `LeanLightProofs.Vendor.EthLib.Bls`, where `Fp` is `Fin p`; `LeanLightProofs` is to prove each operation

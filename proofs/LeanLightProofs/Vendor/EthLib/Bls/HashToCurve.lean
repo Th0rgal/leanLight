@@ -10,7 +10,7 @@ under CC0-1.0 (`LeanLightProofs/Vendor/EthLib/LICENSE`). Rewritten to the Runtim
 `partial` definitions take fuel or recurse structurally, `a[i]!` is `a[i]?.getD 0`, panics return
 `Except`, `while` loops are bounded `for` loops. Semantic changes, each listed: (1) `clearCofactor` is `[h_eff]P`, RFC 9380 §7's definition (open decision 12), where EthLib had Appendix G.3's method, kept as `clearCofactorG3`; (2) `simpleSwu` returns `Except`, the error `sswuNoRoot` where EthLib panicked (never reached for RFC 9380's `Z`); (3) `isoMapG2` returns a point, the identity when a denominator is zero, as RFC 9380 §6.6.3 requires, where EthLib divided by zero; (4) the isogeny's constants, `Z`, `A'`, `B'`, `fp2`, `simpleSwu` and `isoMapG2` are no longer `private`, so that the provenance checks can name them; (5) SHA-256 is `Ssz.Sha256.hash` (`LeanLight.Base.Sha256`, the runtime's, equal to `Spec.Sha256.sha256` by `LeanLight.Lc.Sha256.hash_eq_spec`), where EthLib had its own transcription (`Bls/Sha256.lean`), not vendored: one SHA-256 specification (reuse rule D1). Otherwise `!` is `getD`, every index being in bounds.
 
-It is the specification `LeanLight.Bls` is to be proved equal to (leanKohakuDesktop's `spec/16-light-client.md`,
+It is the specification `LeanLight.Bls` is to be proved equal to (`docs/spec-16-light-client.md`,
 invariant 25c, LC4b), not code the wallet runs; it imports nothing beyond Lean core and `LeanLight.Base.Sha256`, so
 `tests` compiles it into the test executable that runs both layers on the vectors. Its
 imports and its namespace are EthLib's, the module paths moved under `LeanLightProofs.Vendor.EthLib`.
@@ -220,7 +220,7 @@ def isoMapG2 (xp yp : Fp2) : G2 :=
 /-! ## Cofactor clearing (RFC 9380 §7)
 
 `clearCofactor` is multiplication by `h_eff`, RFC 9380's definition (open decision 12 of
-leanKohakuDesktop's `spec/16-light-client.md`). EthLib's Appendix G.3 method, with the psi endomorphism
+`docs/spec-16-light-client.md`). EthLib's Appendix G.3 method, with the psi endomorphism
 (Budroni–Pintore), is kept as `clearCofactorG3`, which the tests compare with it. -/
 
 /-- `h_eff` for BLS12-381 G2 (RFC 9380 §8.8.2). -/

@@ -9,7 +9,7 @@ import LeanLight.El.Rlp
 
 The root of the Merkle-Patricia trie of an ordered list, the transactions' or the receipts' of
 a block (`transactionsRoot`, `receiptsRoot`): item `i`, its encoding, under the key `rlp(i)`
-(leanKohakuDesktop's `spec/16-light-client.md`, "Inclusion and receipts"). The items are the payloads of byte
+(`docs/spec-16-light-client.md`, "Inclusion and receipts"). The items are the payloads of byte
 strings found in one buffer (`Span`s, as `itemsAtB` finds them in netd's re-encoded list), and
 are never copied into lists.
 

@@ -4,7 +4,7 @@ import LeanLightTests.Bls.Provenance
 /-!
 # `lake exe leanlight-bls-test`: BLS12-381's vectors, differential tests and timings
 
-leanKohakuDesktop's `spec/16-light-client.md`, "Testing": every vector of `LeanLightTests.Bls.Vectors` on the light
+`docs/spec-16-light-client.md`, "Testing": every vector of `LeanLightTests.Bls.Vectors` on the light
 client's layer (`LeanLight.Bls`) and on EthLib's readable layer (`LeanLightProofs.Vendor.EthLib.Bls`); the
 hash-to-curve constants' provenance; the benchmark's self-tests; mutated keys, signatures and
 messages refused; the two layers compared on inputs no vector has; the timings of an update and

@@ -10,7 +10,7 @@ Electra or Fulu header's `execution.block_hash`, or a pre-Gloas header brought i
 container), or `Parent`, from `GLOAS_FORK_EPOCH` on, the parent payload's
 (`signed_execution_payload_bid.message.parent_block_hash`). `bind` takes the EL header's RLP,
 fetched by that hash (`eth_getBlockByHash`, netd's re-encoding, untrusted), and keeps it only
-when it is that block (leanKohakuDesktop's `spec/16-light-client.md`, "The EL header, by hash"):
+when it is that block (`docs/spec-16-light-client.md`, "The EL header, by hash"):
 
 * always: `keccak(rlp)` is the hash and the RLP is a known fork's header (`Spec.Header.verifyB`,
   14b), so every field read below is the hashed header's;

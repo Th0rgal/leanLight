@@ -14,7 +14,7 @@ the same answers:
 * **decompression** of keys and signatures near valid ones, accepted alike and to one point;
 * **the final exponentiation's cube**: `finalExp (millerLoop ps)`, the runtime's, equals the
   cube of EthLib's naive `finalExponentiation` of its `pairingCheck` accumulator over the same
-  pairs (leanKohakuDesktop's `spec/16-light-client.md`, "Proved, checked by vectors, trusted"), on pairs whose
+  pairs (`docs/spec-16-light-client.md`, "Proved, checked by vectors, trusted"), on pairs whose
   product is one and on pairs whose product is not.
 -/
 

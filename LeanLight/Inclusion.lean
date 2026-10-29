@@ -6,7 +6,7 @@ import LeanLight.El.History
 /-!
 # Inclusion and receipts: the verdict (G12, LC8)
 
-leanKohakuDesktop's `spec/16-light-client.md`, "Inclusion and receipts": a transaction the wallet sent, its receipt
+`docs/spec-16-light-client.md`, "Inclusion and receipts": a transaction the wallet sent, its receipt
 naming block `N` and index `i`, is proved included under a proving EL block `A` (the anchor's, or
 the finalized one's: `LeanLight.Included`):
 

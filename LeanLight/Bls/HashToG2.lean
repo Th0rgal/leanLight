@@ -5,7 +5,7 @@ import LeanLight.Base.Sha256
 # BLS12-381: `hash_to_G2`, RFC 9380's `BLS12381G2_XMD:SHA-256_SSWU_RO_`
 
 Moved from the benchmark's `Bls/HashToG2.lean` (see `LeanLight.Bls.Fp`), with three changes the
-specification asks for (leanKohakuDesktop's `spec/16-light-client.md`, "Cryptography in Lean"):
+specification asks for (`docs/spec-16-light-client.md`, "Cryptography in Lean"):
 
 * **`clear_cofactor` is `[h_eff]P`** (open decision 12), RFC 9380 §7's own definition, where the
   benchmark had Appendix G.3's faster endomorphism chain. It costs about 5 ms more an update.

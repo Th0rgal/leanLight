@@ -8,7 +8,7 @@ Each constant `LeanLight.Bls` pins is the one EthLib's readable layer
 (`LeanLightProofs.Vendor.EthLib.Bls`) names, by the kernel: the moduli `p` and `r`, `|x|`, `h_eff`,
 the generators, the twist's `b`, and the hash-to-curve constants of RFC 9380 (SSWU's `A'`, `B'`
 and `Z`, Appendix E.3's isogeny coefficients, which the runtime took from py_ecc 8.0.0 and
-EthLib "reproduced verbatim from the RFC"; leanKohakuDesktop's `spec/16-light-client.md`, "Sources", C4c). The
+EthLib "reproduced verbatim from the RFC"; `docs/spec-16-light-client.md`, "Sources", C4c). The
 test executable (`tests`, `LeanLightTests.Bls.Provenance`) compares both with the RFC's text
 and with py_ecc. These are checks of data, not 25c, whose theorems are LC4b's.
 -/

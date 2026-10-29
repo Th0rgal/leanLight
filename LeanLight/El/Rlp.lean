@@ -6,7 +6,7 @@ import LeanLight.Bytes
 
 The inverse of `Spec.Rlp`'s encoding (Yellow Paper, Appendix B), accepting only canonical
 input: the encoding `Spec.Rlp` writes, and nothing else. This is the part of the decoder that
-runs, in the light client (leanKohakuDesktop's `spec/16-light-client.md`, "The Lean package"); the whole-structure
+runs, in the light client (`docs/spec-16-light-client.md`, "The Lean package"); the whole-structure
 decoder `decodeTree`, a specification that is never run, stays in `LeanLightProofs.Spec.RlpDecode`.
 
 **One item.** `decodeHead` reads the first bytes of an item, as a decoder does: a list or a

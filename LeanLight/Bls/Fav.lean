@@ -5,7 +5,7 @@ import LeanLight.Bls.Pairing
 /-!
 # BLS12-381: FastAggregateVerify, the light client's entry
 
-What the light client's store calls (leanKohakuDesktop's `spec/16-light-client.md`, "Cryptography in Lean"):
+What the light client's store calls (`docs/spec-16-light-client.md`, "Cryptography in Lean"):
 
 * `keyValidate?` (`LeanLight.Bls.Compress`), once per committee key, when a committee is taken in;
 * `fastAggregateVerify pks msg sig`, per update, over the keys of the participants, each one

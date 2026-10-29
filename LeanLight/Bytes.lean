@@ -2,7 +2,7 @@
 # Byte views
 
 The light client reads its input from `ByteArray`s, never from `List UInt8`, which costs about
-24 bytes per byte and makes reading at a position linear in it (leanKohakuDesktop's `spec/16-light-client.md`, "The
+24 bytes per byte and makes reading at a position linear in it (`docs/spec-16-light-client.md`, "The
 Lean package"). Its reads are total: a byte by index, 0 past the end (`byteAt`); and a copy of
 a slice (`extract`, `slice`), whose offsets are compared with the buffer's size, and clamped to
 it, before `ByteArray.extract` sees them.

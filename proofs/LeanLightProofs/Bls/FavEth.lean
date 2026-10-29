@@ -647,7 +647,7 @@ theorem Eth.ofG2_congr {q q' : EthLib.Cryptography.Bls.G2} (hi : q.isInfinity = 
 points of the curves): the runtime's `finalExp (millerLoop ps)` stands for the cube of EthLib's
 naive `finalExponentiation` of its `pairingCheck` accumulator over the same pairs. A hypothesis:
 zkcrypto's chain, its cyclotomic squarings and the two Miller loops are checked by vectors, not
-proved (leanKohakuDesktop's `spec/16-light-client.md`, H_vec). -/
+proved (`docs/spec-16-light-client.md`, H_vec). -/
 def MillerLoopsCube : Prop :=
   ∀ ps : List (G1A × G2A), (∀ pq ∈ ps, pq.1.Reduced ∧ E1.Nonsingular pq.1.toJ ∧ pq.2.Reduced ∧
     E2.Nonsingular pq.2.toJ) →

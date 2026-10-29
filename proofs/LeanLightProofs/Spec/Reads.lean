@@ -1,4 +1,4 @@
--- Moved to proofs/core/LeanLight/El/Reads.lean (leanKohakuDesktop's spec/16-light-client.md, LC1), namespace kept;
+-- Moved to proofs/core/LeanLight/El/Reads.lean (docs/spec-16-light-client.md, LC1), namespace kept;
 -- this module stays so that its importers build unchanged. G11's nonce rules, which only the UI
 -- runs, are specified here.
 import LeanLight.El.Reads
@@ -7,7 +7,7 @@ import LeanLight.El.Reads
 # Settled, replaceable and foreign nonces (G11, invariant 25m)
 
 What `lkd_verified::reads::{settled, may_replace, alarm}` decide, over the nonce `p` proved at a
-head (leanKohakuDesktop's `spec/16-light-client.md`, "Stuck, settled and foreign nonces (G11)"):
+head (`docs/spec-16-light-client.md`, "Stuck, settled and foreign nonces (G11)"):
 
 - `settled p n`: nonce `n` was consumed (`settled_iff`: `n < p`);
 - `mayReplace p n receiptSeen fresh`: a speed-up or a cancel is offered only while `p ≤ n`, no

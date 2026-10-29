@@ -10,7 +10,7 @@ under CC0-1.0 (`LeanLightProofs/Vendor/EthLib/LICENSE`). Rewritten to the Runtim
 `partial` definitions take fuel or recurse structurally, `a[i]!` is `a[i]?.getD 0`, panics return
 `Except`, `while` loops are bounded `for` loops. Unchanged but for this header, its imports' paths, and SHA-256 in `hashToBlsField`, which is `Ssz.Sha256.hash` (`LeanLight.Base.Sha256`, the runtime's, equal to `Spec.Sha256.sha256` by `LeanLight.Lc.Sha256.hash_eq_spec`), where EthLib had its own transcription (`Bls/Sha256.lean`), not vendored: one SHA-256 specification (reuse rule D1).
 
-It is the specification `LeanLight.Bls` is to be proved equal to (leanKohakuDesktop's `spec/16-light-client.md`,
+It is the specification `LeanLight.Bls` is to be proved equal to (`docs/spec-16-light-client.md`,
 invariant 25c, LC4b), not code the wallet runs; it imports nothing beyond Lean core and `LeanLight.Base.Sha256`, so
 `tests` compiles it into the test executable that runs both layers on the vectors. Its
 imports and its namespace are EthLib's, the module paths moved under `LeanLightProofs.Vendor.EthLib`.

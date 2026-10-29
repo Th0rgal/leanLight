@@ -6,7 +6,7 @@ import LeanLightProofs.History
 /-!
 # What a proved inclusion verdict says (25l, LC8)
 
-About `LeanLight.Inclusion.verdict` and `settle`, the code `lkd-lc` runs (leanKohakuDesktop's `spec/16-light-client.md`,
+About `LeanLight.Inclusion.verdict` and `settle`, the code `lkd-lc` runs (`docs/spec-16-light-client.md`,
 "Inclusion and receipts"). `verdict_proved`: a verdict `proved j ok fin` for the transaction hash
 `h`, block number `N` and anchor `A` says
 

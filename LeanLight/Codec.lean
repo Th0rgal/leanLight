@@ -3,7 +3,7 @@ import LeanLight.Store
 /-!
 # From bytes to the store's objects
 
-The light-client objects arrive as SSZ (leanKohakuDesktop's `spec/16-light-client.md`, "The beacon API"), each
+The light-client objects arrive as SSZ (`docs/spec-16-light-client.md`, "The beacon API"), each
 tagged with its fork: an `Eth-Consensus-Version` name, or a `/updates` chunk's fork digest. A
 `Codec` decodes the SSZ of one fork into the store's normalized objects (`LeanLight.Store`); `mainnet`
 is the mainnet preset's, from `LeanLight.Ssz`'s decoders (LC3); the minimal preset's, for the tests,

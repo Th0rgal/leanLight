@@ -3,7 +3,7 @@ import LeanLight.Ssz.Frame
 /-!
 # Forks per chain
 
-What the light client knows about each chain it follows, as data (leanKohakuDesktop's `spec/16-light-client.md`,
+What the light client knows about each chain it follows, as data (`docs/spec-16-light-client.md`,
 "Forks per chain"), pinned from each network's `config.yaml` (eth-clients mainnet `8cad480`,
 sepolia `7b1b9d9`): the genesis validators root and genesis time, each fork from Electra on with
 its epoch and version, the blob-parameter schedule (EIP-7892's BPO entries, which change the

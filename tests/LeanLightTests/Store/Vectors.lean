@@ -5,7 +5,7 @@ import LeanLightTests.Store.Util
 
 consensus-specs v1.7.0-beta.4's `light_client/sync` and `light_client/update_ranking` for
 Electra, Fulu and Gloas (`vectors/light_client`, its README), run on `LeanLight.Store` with the
-minimal preset's decoders (`LeanLightDev`), under the rules of leanKohakuDesktop's `spec/16-light-client.md`,
+minimal preset's decoders (`LeanLightDev`), under the rules of `docs/spec-16-light-client.md`,
 "Testing":
 
 * each step's update is decoded as the fork its digest names, which must be the fork of its

@@ -3,7 +3,7 @@ import LeanLightDev.Minimal
 /-!
 # The development table
 
-The chain the development builds' fake beacon serves (leanKohakuDesktop's `spec/16-light-client.md`, "Testing"):
+The chain the development builds' fake beacon serves (`docs/spec-16-light-client.md`, "Testing"):
 the minimal preset, one-second slots, Electra at epoch 0, Fulu at 1 and Gloas at 2, or at the
 epoch the fake beacon asks, or never (the minimal configuration's versions), and a `MAX_AGE` of ten minutes, so that the e2e tests reach "too old".
 Never in a release.
