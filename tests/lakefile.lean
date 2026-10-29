@@ -27,26 +27,26 @@ lean_lib LeanLightTests where
   globs := #[.submodules `LeanLightTests]
 
 /-- `lake exe leanlight-bls-test` (`--quick`: no timings). -/
-lean_exe «leanlight-bls-test» where
+@[default_target] lean_exe «leanlight-bls-test» where
   root := `LeanLightTests.Bls
 
 /-- `lake exe leanlight-ssz-test`: `LeanLight.Ssz` against consensus-specs' SSZ vectors. -/
-lean_exe «leanlight-ssz-test» where
+@[default_target] lean_exe «leanlight-ssz-test» where
   root := `LeanLightTests.Ssz
 
 /-- `lake exe leanlight-store-test`: `LeanLight.Store` against consensus-specs' light-client vectors. -/
-lean_exe «leanlight-store-test» where
+@[default_target] lean_exe «leanlight-store-test» where
   root := `LeanLightTests.StoreMain
 
 /-- `lake exe leanlight-committee-bench`: where taking in a committee spends its time. -/
-lean_exe «leanlight-committee-bench» where
+@[default_target] lean_exe «leanlight-committee-bench» where
   root := `LeanLightTests.CommitteeBench
 
 /-- `lake exe leanlight-client-test`: the client's decisions (`LeanLight.Driver`) on recorded
 mainnet runs (`fixtures/`), offline: the honest run, and forgeries refused. -/
-lean_exe «leanlight-client-test» where
+@[default_target] lean_exe «leanlight-client-test» where
   root := `LeanLightTests.ClientMain
 
 /-- `lake exe leanlight-bench`: what verifying costs, offline, on the recorded runs. -/
-lean_exe «leanlight-bench» where
+@[default_target] lean_exe «leanlight-bench» where
   root := `LeanLightTests.BenchMain
