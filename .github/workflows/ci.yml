@@ -1,0 +1,55 @@
+name: CI
+
+# Every push and pull request: the library and the client, the tests and their vectors, the
+# proofs (with Mathlib's prebuilt cache), and the three audits: no unproved runtime code, no
+# axiom beyond Lean's three, every module replayed through the kernel.
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  library:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install elan
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh \
+            | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: No unproved runtime code
+        run: scripts/check-runtime.sh
+      - name: Build the library and leanlight
+        run: lake build
+      - name: Tests
+        working-directory: tests
+        run: |
+          lake build
+          ./.lake/build/bin/leanlight-store-test
+          ./.lake/build/bin/leanlight-ssz-test
+          ./.lake/build/bin/leanlight-bls-test --quick
+
+  proofs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install elan
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh \
+            | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Mathlib's cache
+        working-directory: proofs
+        run: lake exe cache get
+      - name: Build the proofs
+        working-directory: proofs
+        run: lake build
+      - name: Axiom audit
+        run: scripts/check-axioms.sh
+      - name: Kernel replay
+        working-directory: proofs
+        env:
+          LEANLIGHT_KERNEL_JOBS: "2"
+        run: ../scripts/check-kernel.sh

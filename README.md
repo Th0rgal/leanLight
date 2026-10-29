@@ -1,11 +1,15 @@
 # leanLight
 
-An Ethereum consensus light client written in Lean 4, with machine-checked proofs about the code
-that runs. It follows mainnet or Sepolia from a checkpoint by the sync protocol (BLS12-381
+An Ethereum consensus light client written in Lean 4, whose definitions are what runs and what
+its machine-checked proofs are about. It follows mainnet or Sepolia from a checkpoint by the sync protocol (BLS12-381
 signatures of the sync committee, SSZ Merkle branches), then answers execution-layer reads
 (balances, nonces, code, storage) by checking `eth_getProof` proofs against the state root of a
 block its own verified beacon header names. Nothing an RPC endpoint says is believed until the
-light client has checked it.
+light client has checked it, with two exceptions this README names: the checkpoint when you give
+none, and which addresses the endpoint learns you read ([Trust model](#trust-model)).
+
+It is research software: young, without an outside audit, and not yet something to trust with
+funds on its own word.
 
 The code was extracted from [leanKohakuDesktop](https://github.com/nconsigny/leanKohakuDesktop)'s
 light client (commit `8bddee0e`), where it runs sandboxed inside the wallet. Here it stands
@@ -47,7 +51,57 @@ What the proofs cover, in brief (the statements are in the files):
 `scripts/check-axioms.sh` audits every constant of `LeanLight` and `LeanLightProofs` (about
 6,100, 2,865 of them theorems): each may rest only on `propext`, `Classical.choice` and
 `Quot.sound`, so no `sorry` and no `native_decide`. `scripts/check-kernel.sh` replays every
-module through Lean's kernel.
+module through Lean's kernel. `scripts/check-runtime.sh` refuses any `@[implemented_by]`,
+`@[extern]`, `opaque` or `unsafe` in `LeanLight/`. CI runs all three on every push.
+
+## Trust model
+
+What a proof gives, what is assumed, and what is trusted without either.
+
+**Proved.** The theorems are refinements: the runtime definition equals, or is sound against, a
+readable specification (ssz-specs, EthLib's BLS12-381, VCVio's SHA-256, Mathlib's group law,
+the consensus specs' store rules transcribed, the Yellow Paper's trie). A mistake in one of those
+specifications would carry into leanLight; the theorems do not prove the light client secure,
+they prove it computes what those specifications say. The store's statements (bootstrap binds
+the checkpoint, acceptance only after every check, conflicts halt) are about leanLight's own
+store, whose rules are the consensus specs' as transcribed (`docs/spec-16-light-client.md`,
+"The protocol").
+
+**Assumed, checked by test vectors.** That the pairing is bilinear and non-degenerate on
+G1 × G2, and that the fast final exponentiation computes the cube of the naive one: named
+hypotheses in the BLS theorems (`MillerLoopsCube`, `FinalExpCube`, `PairingCheckIs`, `HashInG2`;
+`H_vec` in the design notes), checked by the BLS vectors and the differential test, never
+axioms.
+
+**Fast paths are proved.** What runs is never swapped in unproved: no `@[implemented_by]` or
+`@[extern]` (`scripts/check-runtime.sh`). A fast version replaces a readable one only through a
+`@[csimp]` equation, a theorem the axiom audit covers: Keccak-256 (`keccak256_eq_fast`,
+`Base/KeccakFast.lean`), SHA-256's schedule, compression and hash (`Base/Sha256.lean`), the RLP
+reader (`El/Rlp.lean`). Committee keys are validated in parallel through `Store.mapPar`,
+equal to `Array.map` in the logic (`mapPar_eq`).
+
+**Trusted, unverified.**
+
+- Lean's compiler and runtime, and GMP, which computes `Nat` arithmetic (BLS12-381's fields).
+- The command-line client (`Main.lean`, `LeanLightCli/`): which objects it fetches and in what
+  order, its retries, how `curl`'s output and JSON become bytes. It hands every byte to
+  `LeanLight`'s checked readers and prints only what they return, so a bug there can fail a read
+  or sync to a stale head; it cannot make a forged value pass a check. That glue is not proved.
+- `curl`, the operating system and the clock: a clock set back can make an old checkpoint look
+  fresh (`docs/spec-16-light-client.md`, "The clock").
+- **The checkpoint, when you give none.** Without `--checkpoint`, leanlight takes the beacon
+  node's finalized root on trust, as Helios does without one, and says so on standard error.
+  Everything after is checked against that root: give a checkpoint you got elsewhere (a block
+  explorer, another node, a friend) to remove that trust.
+
+## Privacy
+
+A light client checks what endpoints say; it does not hide what you ask. The execution endpoint
+learns every address and storage slot you read (`eth_getProof` names them) and, from your
+connection, who asks; the beacon node learns that you follow the chain. leanlight sends a run's
+reads in one JSON-RPC batch, so the endpoint also sees them together, linked. Use your own node,
+or Tor, if that matters to you. (The wallet leanLight came from splits reads by account across
+Tor circuits and endpoints; the command-line client does not.)
 
 ## Building
 
