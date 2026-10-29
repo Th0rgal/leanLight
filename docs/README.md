@@ -7,6 +7,20 @@ leanLight was extracted from the light client of [leanKohakuDesktop](https://git
 | [`INVARIANTS.md`](INVARIANTS.md) | Rows 25a to 25l: what the code and proofs claim, the theorems behind each claim, and its status |
 | [`spec-16-light-client.md`](spec-16-light-client.md) | The light client's design, verbatim: why, the protocol, the cryptography, anchored reads, and the decisions as they were taken. It also covers how the wallet runs the light client (`lkd-lc`, netd, Tor, the UI), which is not part of leanLight |
 
+## Where leanLight has moved on
+
+The copies are as the wallet had them on the date above. Since then, in leanLight:
+
+- **Committee keys are not validated** (2026-10-29, as the consensus specs' light client and
+  Helios do). `Committee.ofSync` keeps the keys' and the aggregate key's encodings; a signature
+  check takes the aggregate key less the absent keys when more than half signed
+  (`Store.signersKey?`). So 25c's "`Committee.ofSync` validates the keys with `Store.mapPar`"
+  and 25e's and 25f's "every key passing KeyValidate" no longer hold: `ofSync_keys` now states
+  that the committee holds as many encodings as the preset's committee, and that the keys are
+  points of G1 whose sum the aggregate key is is a hypothesis, `Committee.Consistent`, of the
+  signature theorems (`LeanLightProofs/Signers.lean`: `signersKey?_eq`,
+  `verifySignature_consistent`, `verifySignature_iff_pairing`).
+
 ## Reading the ids in the comments
 
 | Id | Meaning | Where |

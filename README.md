@@ -38,6 +38,13 @@ What the proofs cover, in brief (the statements are in the files):
   hypothesis below (`fastAggregateVerifyBytes_eq_eth`). That the pairing is bilinear and
   non-degenerate, and that the fast final exponentiation computes the cube of the naive one,
   are named hypotheses checked by the vectors, not proved (`H_vec` in the comments).
+- **Committee keys** are not validated, as in the consensus specs' light client and in Helios:
+  the store keeps a committee's encodings under the root that proved them and, per signature,
+  takes the committee's aggregate key less the absent keys when more than half signed. On a
+  committee as the chain holds one (`Committee.Consistent`: its keys decode to points of G1, its
+  aggregate key to their sum) that is the participants' sum, and the signature check is the
+  verification equation over it (`signersKey?_eq`, `verifySignature_iff_pairing`,
+  `Signers.lean`).
 - **SSZ**: the decoders are canonical and agree with ssz-specs; `hash_tree_root` of each light-client
   container is ssz-specs'; a branch verifies exactly when the leaf is in the tree (`Ssz*.lean`).
 - **The store**: bootstrap binds the checkpoint; an update is accepted only after every check of
@@ -74,12 +81,19 @@ hypotheses in the BLS theorems (`MillerLoopsCube`, `FinalExpCube`, `PairingCheck
 `H_vec` in the design notes), checked by the BLS vectors and the differential test, never
 axioms.
 
+**Assumed, the chain's.** That a sync committee's keys are points of G1 and its
+`aggregate_pubkey` their sum (`Committee.Consistent`, a hypothesis of the signature theorems in
+`Signers.lean`). The beacon state's committees are: each key passed KeyValidate at deposit, and
+the aggregate is `eth_aggregate_pubkeys` of the keys. The light client takes a committee only
+under a root the previous committee signed (or the checkpoint's), so this is the trust it
+already places in that committee; Helios and the consensus specs' light client rest on the same.
+
 **Fast paths are proved.** What runs is never swapped in unproved: no `@[implemented_by]` or
 `@[extern]` (`scripts/check-runtime.sh`). A fast version replaces a readable one only through a
 `@[csimp]` equation, a theorem the axiom audit covers: Keccak-256 (`keccak256_eq_fast`,
 `Base/KeccakFast.lean`), SHA-256's schedule, compression and hash (`Base/Sha256.lean`), the RLP
-reader (`El/Rlp.lean`). Committee keys are validated in parallel through `Store.mapPar`,
-equal to `Array.map` in the logic (`mapPar_eq`).
+reader (`El/Rlp.lean`). The aggregate key less the absent keys is proved equal to the
+participants' sum on a consistent committee (`signersKey?_eq`).
 
 **Trusted, unverified.**
 
@@ -153,28 +167,31 @@ leanlight --consensus-rpc http://testing.mainnet.beacon-api.nimbus.team \
 The client syncs in one round trip (bootstrap, the current period's update, the finality and
 optimistic updates fetched together; older periods after) and fetches a whole set of reads in
 one JSON-RPC batch. Every value it prints comes out of `LeanLight`'s checked readers, never out
-of the JSON. Committee keys are validated in parallel on every core.
+of the JSON.
 
 ## Speed
 
 **What verifying costs, offline.** `tests/` replays two recorded mainnet runs (`leanlight
 record`, in `tests/fixtures/`) with no network, so only the light client's own work is timed
-(`lake exe leanlight-bench`; median of 15 runs, on a shared 32-core machine under load;
-`bench/results/offline-2026-10-29/`):
+(`lake exe leanlight-bench`; median of 15 runs, on a shared 32-core machine;
+`bench/results/offline-2026-10-29b/`):
 
-| Step | 1 core | 4 cores | 32 cores |
-|---|---|---|---|
-| Bootstrap (the checkpoint's committee: 512 keys through KeyValidate) | 283 ms | 88 ms | 28 ms |
-| A period update (a signature and the next committee's 512 keys) | 222–327 ms | 127–264 ms | 42–103 ms |
-| A finality or optimistic update (one signature) | 20–35 ms | 32–36 ms | 33–42 ms |
-| Binding the anchored block's header | 13–34 µs | 25–31 µs | 26–34 µs |
-| 13 reads (balances, nonces, storage, code), proofs checked | 0.8 ms | 1.4 ms | 0.9 ms |
-| **A sync from a fresh checkpoint**, then the 13 reads | **0.59 s** | 0.29 s | 0.16 s |
-| **A sync from a checkpoint 7 periods old** | **2.05 s** | 1.24 s | 0.54 s |
+| Step | Time (1, 4 or 32 cores alike) | When every key was validated, 1 core |
+|---|---|---|
+| Bootstrap (the checkpoint's root and committee branch) | 2.0 ms | 283 ms |
+| A period update (a signature and the next committee's root) | 20–22 ms | 222–327 ms |
+| A finality or optimistic update (one signature) | 16–18 ms | 20–35 ms |
+| Binding the anchored block's header | 12–17 µs | 13–34 µs |
+| 13 reads (balances, nonces, storage, code), proofs checked | 0.7–0.8 ms | 0.8 ms |
+| **A sync from a fresh checkpoint**, then the 13 reads | **59 ms** | 0.59 s |
+| **A sync from a checkpoint 7 periods old** | **0.18–0.19 s** | 2.05 s |
 
-Committee keys are the cost: 512 subgroup checks per committee, spread over the cores. A
-signature check (hash-to-G2 and the pairing, in Lean over GMP) is 20–40 ms and gains nothing
-from more cores; a native BLS library takes about 1 ms. Proofs and headers are cheap.
+A signature check is the cost: hash-to-G2 (about 6 ms), the signature's decoding and subgroup
+check (about 3 ms) and the pairing (about 8 ms), in Lean over GMP; a native BLS library takes
+2–3 ms. Committee keys used to be: every committee's 512 keys went through KeyValidate; now none
+do, as in the consensus specs and Helios, and a signature decodes only
+the committee's aggregate key and the absent keys (`Signers.lean`). Proofs and headers are
+cheap.
 
 **Against Helios, on the same endpoints.** `bench/compare.py` starts Helios (`a16z/helios`
 `2af9b41`) and `leanlight` from the same checkpoint on the same consensus and execution
@@ -182,7 +199,8 @@ endpoints, and compares every read at leanLight's anchored block with Helios's a
 (2026-10-29, mainnet, 3 rounds per endpoint set; `bench/results/2026-10-29/`). Read it as two
 request strategies over the same network rather than as the two verifiers' speed: the network
 dominates, leanlight fetches its sync objects in one round trip and its reads in one JSON-RPC
-batch while Helios asks one call per read, and leanLight's committee checks use every core.
+batch while Helios asks one call per read. This run predates the change above: leanLight still
+validated every committee key, on every core.
 
 | | Helios | leanLight |
 |---|---|---|
