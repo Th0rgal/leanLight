@@ -247,7 +247,7 @@ theorem apply_frame (c : Chain) (s : Store) (u : Update) :
     by_cases hlt : s.finalized.beacon.slot < u.finalized.beacon.slot <;>
     simp [hl, h1, h2, hlt]
 
-/-- The committee `learn` takes in: its keys validated, its root the update's committee's, never
+/-- The committee `learn` takes in: `Committee.ofSync` of the update's committee, never
 an empty committee. -/
 theorem learn_some {c : Chain} {u : Update} {n : Committee} (h : learn c u = some (some n)) :
     committeeEmpty u.next = false ∧ Committee.ofSync c.preset u.next = some n := by
@@ -785,7 +785,7 @@ theorem bootstrap_sound {c : Chain} {cp : ByteArray} {now : Nat} {b : Bootstrap}
 
 /-- **The signature check (25d)**: FastAggregateVerify's check (`Bls.verifyAggregate`) of the
 participants' aggregate key (`signersKey?`: the sum of the keys whose bit is set, on a committee
-whose aggregate key is its keys' sum, `LeanLightProofs.Signers.signersKey?_eq`), of the signing
+consistent with the chain, `Committee.Consistent`, `LeanLightProofs.Signers.signersKey?_eq`), of the signing
 root of the attested header's root under
 `compute_domain(DOMAIN_SYNC_COMMITTEE, version, genesis_validators_root)`, the version the fork
 table gives at the epoch of `max(signature_slot, 1) − 1`. -/

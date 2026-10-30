@@ -28,7 +28,7 @@ leanLight's departures (from leanKohakuDesktop):
   signed, the committee's aggregate key less the absent keys, else the participants' keys, with
   no subgroup check. That the keys are in G1 and the aggregate their sum is the chain's: the
   state transition's, which validated each key at deposit; the theorems that need it take it as
-  a hypothesis (`Committee.Consistent`, `LeanLightProofs.Store`).
+  a hypothesis (`Committee.Consistent`, `LeanLightProofs.Signers`).
 
 The objects are normalized, preset- and fork-independent forms of the SSZ containers
 (`LeanLight.Codec` builds them from the bytes): a `Header` keeps its beacon header, what its
@@ -381,7 +381,7 @@ def clockBehind (c : Chain) (s : Store) (now : Nat) : Bool :=
 /-- `initialize_light_client_store`, with this light client's checks: the header is valid at its slot's fork,
 its root is the configured checkpoint, the current committee is proved by its branch at the
 fork's gindex under the header's state root, the checkpoint is younger than `MAX_AGE` at `now`,
-and every key passes KeyValidate. The store starts with that header finalized, that committee
+and the committee has the preset's number of keys (kept as encodings, not validated). The store starts with that header finalized, that committee
 current, its root kept for its period, and nothing else. -/
 def bootstrap (c : Chain) (checkpoint : ByteArray) (now : Nat) (b : Bootstrap) : Option Store :=
   let slot := b.header.beacon.slot
@@ -532,15 +532,16 @@ inductive Verdict where
   | compared
   /-- Verified, and not relevant. -/
   | irrelevant
-  /-- The next committee it brings has a key KeyValidate refuses. -/
+  /-- The next committee it brings is refused by `Committee.ofSync`: not the preset's number of
+  keys (which the decoders already ensure; no key is validated). -/
   | badKeys
   /-- Accepted: `applied` when the finalized header or the committees moved, `learned` when a
-  committee entered the store (its keys validated). -/
+  committee entered the store. -/
   | accepted (applied learned : Bool)
   deriving DecidableEq
 
 /-- The committee an update brings, when it becomes the store's next: none when empty, else
-its keys validated (`none` inside when one fails). -/
+`Committee.ofSync` of it (`none` inside when that refuses it). -/
 def learn (c : Chain) (u : Update) : Option (Option Committee) :=
   if committeeEmpty u.next then some none else (Committee.ofSync c.preset u.next).map some
 

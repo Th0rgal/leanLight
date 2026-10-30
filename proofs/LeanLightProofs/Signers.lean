@@ -40,7 +40,9 @@ local notation "aff2" => Point.toAffine E2
 /-- **A committee as the chain holds one** (a hypothesis, never an axiom): its keys' encodings
 decode (`g1Decompress?`) to `keys`, each in G1 (`[r]P = O`), and its aggregate key's to their
 sum. The beacon state's are: each key passed KeyValidate at deposit, and the aggregate is
-`eth_aggregate_pubkeys` of the keys. -/
+`eth_aggregate_pubkeys` of the keys. It fails only for a committee whose keys sum to the identity,
+whose aggregate does not decode: the store then refuses its signatures (liveness, not
+soundness). `signersKey?_eq` needs `decode` and `aggregate`; `inG1` is for the pairing. -/
 structure Committee.Consistent (com : Committee) (keys : Array G1A) : Prop where
   decode : com.pubkeys.mapM g1Decompress? = some keys
   inG1 : ∀ p ∈ keys.toList, R • aff1 p.toJ = 0
