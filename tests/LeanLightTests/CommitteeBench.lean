@@ -39,7 +39,8 @@ def main (args : List String) : IO UInt32 := do
   let _ ← timeIt "aggregate (G1 adds)" 1 (fun _ => aggregate? parts) (fun o => toString o.isSome)
   let _ ← timeIt "signersSum? (readable)" 1 (fun _ => Store.signersSum? com u.aggregate.bits) (fun o => toString o.isSome)
   let _ ← timeIt "signersKey? (aggregate less absent)" 1 (fun _ => Store.signersKey? com u.aggregate.bits) (fun o => toString o.isSome)
-  let _ ← timeIt "sigValidate? (G2 decompress + [r]Q)" 1 (fun _ => sigValidate? u.aggregate.signature) (fun o => toString o.isSome)
+  let _ ← timeIt "sigValidate? (G2 decompress + ψ)" 1 (fun _ => sigValidate? u.aggregate.signature) (fun o => toString o.isSome)
+  let _ ← timeIt "g2Decompress? + [r]Q (slow check)" 1 (fun _ => (g2Decompress? u.aggregate.signature).filter (·.inSubgroup)) (fun o => toString o.isSome)
   let _ ← timeIt "g2Decompress? only" 1 (fun _ => g2Decompress? u.aggregate.signature) (fun o => toString o.isSome)
   let some h ← timeIt "hashToG2" 1 (fun _ => H2C.hashToG2? msg ethDst) (fun o => toString o.isSome) | return 1
   let some s := sigValidate? u.aggregate.signature | return 1

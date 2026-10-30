@@ -32,7 +32,8 @@ What the proofs cover, in brief (the statements are in the files):
   (`Bls/Curves.lean`, `Bls/Jacobian.lean`); decompression is sound and canonical; KeyValidate
   accepts exactly the compressions of the points of G1 other than the identity, and equals
   EthLib's (`Bls/Decompress.lean`, `Bls/Roundtrip.lean`, `Bls/FavEth.lean`); KeyValidate runs
-  Scott's subgroup test, proved sound (`Bls/Scott.lean`); hash-to-G2 equals EthLib's
+  Scott's subgroup test and `sigValidate?` runs `ψ`'s endomorphism test, both proved sound
+  (`Bls/Scott.lean`, `Bls/Psi.lean`); hash-to-G2 equals EthLib's
   (`Bls/HashEth.lean`); FastAggregateVerify equals EthLib's when the message does not hash to
   the identity and the signature is not the identity's encoding, given the Miller-loop
   hypothesis below (`fastAggregateVerifyBytes_eq_eth`). That the pairing is bilinear and

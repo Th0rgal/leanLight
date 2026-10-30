@@ -95,10 +95,11 @@ def g2Decompress? (b : ByteArray) : Option G2A :=
   | some y => some ⟨x, if y.large == sign then y else y.neg⟩
 
 /-- The signature's checks of CoreVerify (IRTF BLS §2.7, `signature_subgroup_check`): 96 bytes
-decompressed, not the identity, and `[r]Q = O`. -/
+decompressed, not the identity, and `[r]Q = O`, checked as `G2A.inSubgroupFast` checks it (equal to
+`inSubgroup` on the curve). -/
 def sigValidate? (b : ByteArray) : Option G2A :=
   match g2Decompress? b with
-  | some q => if q.inSubgroup then some q else none
+  | some q => if q.inSubgroupFast then some q else none
   | none => none
 
 end LeanLight.Lc.Bls

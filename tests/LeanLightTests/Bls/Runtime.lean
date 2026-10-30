@@ -90,13 +90,16 @@ def selfTests (z : Nat) : IO Tally := do
   let g2 := G2J.ofAffine g2Gen
   t := t.add "g1 on E, [r]g1 = O" (g1Gen.onCurve && g1Gen.inSubgroup)
   t := t.add "g2 on E', [r]g2 = O" (g2Gen.onCurve && g2Gen.inSubgroup)
-  t := t.add "Scott's test accepts g1, psi's g2" (g1Gen.inSubgroupScott && g2Gen.inSubgroupPsi)
+  t := t.add "Scott's test accepts g1, psi's g2"
+    (g1Gen.inSubgroupScott && g1Gen.inSubgroupFast && g2Gen.inSubgroupPsi && g2Gen.inSubgroupFast)
   let bad1 := nonG1
   t := t.add "a point of E outside G1 refused by both tests"
-    (bad1.onCurve && !bad1.inSubgroup && !bad1.inSubgroupScott && (keyValidate? bad1.compress).isNone)
+    (bad1.onCurve && !bad1.inSubgroup && !bad1.inSubgroupScott && !bad1.inSubgroupFast &&
+      (keyValidate? bad1.compress).isNone)
   let bad2 := nonG2
   t := t.add "a point of E' outside G2 refused by both tests"
-    (bad2.onCurve && !bad2.inSubgroup && !bad2.inSubgroupPsi && (sigValidate? bad2.compress).isNone)
+    (bad2.onCurve && !bad2.inSubgroup && !bad2.inSubgroupPsi && !bad2.inSubgroupFast &&
+      (sigValidate? bad2.compress).isNone)
   let p7 := g1Aff (G1J.mulA g1Gen (7 + z))
   t := t.add "[7]g1 = g1 + ... + g1" ((G1J.mulA g1Gen 7).eq
     (g1.add g1 |>.add g1 |>.add g1 |>.add g1 |>.add g1 |>.add g1))
@@ -203,9 +206,9 @@ def timings (z reps : Nat) : IO (Tally × Nat × Nat) := do
   let pairing ← timeBest 1 reps fun i =>
     if pairingCheck [(g1Gen, sq), ((if i = 1000 then g1Gen else aggA).neg, hq)] then 1 else 0
   let cof ← timeBest 1 reps fun i => (H2C.clearCofactor ⟨hq.x, hq.y, ⟨i + 1, 0⟩⟩).x.c0 % 2
-  IO.println s!"TIME update (512 keys aggregated, hash_to_G2, signature decompressed and [r]Q, 2-pair pairing check): {ms update}"
+  IO.println s!"TIME update (512 keys aggregated, hash_to_G2, signature decompressed and ψ, 2-pair pairing check): {ms update}"
   IO.println s!"TIME   of which: aggregate 512 keys {ms agg}, hash_to_G2 {ms h2g} (clear_cofactor [h_eff]P {ms cof}), signature checks {ms sigCheck}, pairing check {ms pairing}"
-  IO.println s!"TIME committee: 512 x (decompress + KeyValidate with [r]P): {ms committeeNs}"
+  IO.println s!"TIME committee: 512 x (decompress + KeyValidate with σ): {ms committeeNs}"
   return (t, update, committeeNs)
 
 end LeanLight.Tests.Bls

@@ -12,6 +12,7 @@ import LeanLightProofs.Bls.HashEth
 import LeanLightProofs.Bls.Jacobian
 import LeanLightProofs.Bls.Primes
 import LeanLightProofs.Bls.Provenance
+import LeanLightProofs.Bls.Psi
 import LeanLightProofs.Bls.Roundtrip
 import LeanLightProofs.Bls.Scott
 import LeanLightProofs.Bls.Tower

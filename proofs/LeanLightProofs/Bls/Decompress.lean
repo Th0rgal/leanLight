@@ -1,3 +1,4 @@
+import LeanLightProofs.Bls.Psi
 import LeanLightProofs.Bls.Scott
 import LeanLight.Bls.Compress
 
@@ -169,7 +170,8 @@ theorem sigValidate?_some {b : ByteArray} {q : G2A} (h : sigValidate? b = some q
     split at h
     · rename_i hs
       cases h
-      exact ⟨rfl, hr, hn, hne, (G2A.inSubgroup_iff hr hn).mp hs⟩
+      exact ⟨rfl, hr, hn, hne,
+        (G2A.inSubgroup_iff hr hn).mp ((G2A.inSubgroupFast_eq hr hn).symm.trans hs)⟩
     · cases h
 
 /-- The identity's canonical 48-byte encoding fails KeyValidate. -/

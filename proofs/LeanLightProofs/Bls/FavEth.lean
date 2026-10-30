@@ -917,7 +917,7 @@ theorem fastAggregateVerifyBytes_eq_eth (hcube : MillerLoopsCube) (pks : Array B
           rw [Option.elim_some, Option.elim_some,
             ite_eq_right (show ¬(sig.size ≠ 96) from by rw [hsz]; exact fun h => h rfl)]
           dsimp only
-          rw [Eth.G2.inSubgroup_ofA hqr hqn]
+          rw [Eth.G2.inSubgroup_ofA hqr hqn, G2A.inSubgroupFast_eq hqr hqn]
           cases hs : q.inSubgroup with
           | false => rfl
           | true =>
