@@ -1,4 +1,5 @@
 import LeanLightProofs.Bls.Roundtrip
+import LeanLightProofs.Bls.HashCurve
 import LeanLightProofs.Bls.HashEth
 import LeanLightProofs.Bls.FinalExp
 
@@ -30,9 +31,10 @@ signature.
 The identity's encoding as the signature is the one case left, and it is characterized
 (`fastAggregateVerify_eth_identitySig`): EthLib decodes it to the identity and skips its pair,
 so it accepts exactly when the runtime's check of the one pair `(−Σ pkᵢ, H(m))` passes,
-`e(Σ pkᵢ, H(m)) = 1`, where the runtime refuses (`fastAggregateVerifyBytes_identitySig`). They
-agree there exactly when that check fails, which the pairing's non-degeneracy gives when `H(m)`
-lies in G2; neither is proved (`[h_eff]` landing in G2 needs the order of `E'(𝔽_{p²})`).
+`e(Σ pkᵢ, H(m)) = 1`, where the runtime refuses (`fastAggregateVerifyBytes_identitySig`). Since
+`H(m)` lies in G2 (`hashInG2`, `LeanLightProofs.Bls.HashCurve`), non-degeneracy of the single-pair
+check on G1 × G2 (`PairingOneNonDegenerate`) closes that case too
+(`fastAggregateVerifyBytes_eq_eth_of_pairing`).
 
 The unfoldings follow `LeanLightProofs.Bls.HashEth`'s rules: values through `value_eq`, EthLib's
 private helpers by `delta_private`, matches rewritten (or their discriminants generalized) before
@@ -979,8 +981,8 @@ subgroup check passes and whose pair its pairing check skips: where `hash_to_G2(
 the identity, and given H_vec's equation, EthLib's `fastAggregateVerify` is true exactly when
 every key passes KeyValidate, their sum `A` is not the identity, and the runtime's check of the
 one pair `(−A, H(m))` passes, `e(A, H(m)) = 1`. The runtime refuses this signature
-(`fastAggregateVerifyBytes_identitySig`), so the two agree here exactly when that check fails:
-non-degeneracy, given `H(m)` in G2, neither proved here. -/
+(`fastAggregateVerifyBytes_identitySig`), so the two agree here when that single-pair check fails
+(`fastAggregateVerifyBytes_eq_eth_of_pairing`). -/
 theorem fastAggregateVerify_eth_identitySig (hcube : MillerLoopsCube) (pks : Array ByteArray)
     (msg : ByteArray)
     (hH : ∀ q, EthLib.Cryptography.Bls.HashToCurve.hashToG2 msg
@@ -1118,5 +1120,79 @@ theorem fastAggregateVerify_eth_identitySig (hcube : MillerLoopsCube) (pks : Arr
           rw [Eth.pairingCheck_eq, Eth.pairingCheck_eq, Eth.pairingAcc_skip _ hPi,
             Eth.pairingAcc_congr1 _ (q' := qq) (by rw [Eth.G2.isInfinity_ofA, hqi])
               (Eth.ofG2_congr (by rw [Eth.G2.isInfinity_ofA, hqi]) (Eth.G2.toAffine_ofA qq))]
+
+/-- Non-degeneracy of the runtime's single-pair check on G1 × G2: for reduced affine (hence
+nonzero) points `p` of G1 (`[r]P = O`) and `q` of G2 (`[r]Q = O`), `pairingCheck [(p, q)]` is
+`false` (`e(P, Q) ≠ 1`). This holds for the reduced optimal ate pairing on G1 × G2 (bilinear and
+non-degenerate), since `G1A` and `G2A` have no identity representation and `r` is prime. -/
+def PairingOneNonDegenerate : Prop :=
+  ∀ (p : G1A) (q : G2A), p.Reduced → E1.Nonsingular p.toJ → R • aff1 p.toJ = 0 →
+    q.Reduced → E2.Nonsingular q.toJ → R • aff2 q.toJ = 0 →
+    pairingCheck [(p, q)] = false
+
+/-- From a single-pair characterization `pairingCheck [(p, q)] = true ↔ e(P, Q) = 1` on G1 × G2
+and non-degeneracy of `e` on nonzero points of G1 × G2, `PairingOneNonDegenerate` follows. -/
+theorem pairingOneNonDegenerate_of_pairing {GT : Type} [CommGroup GT]
+    (e : E1.toAffine.Point → E2.toAffine.Point → GT)
+    (hcheck1 : ∀ (p : G1A) (q : G2A), p.Reduced → E1.Nonsingular p.toJ → R • aff1 p.toJ = 0 →
+      q.Reduced → E2.Nonsingular q.toJ → R • aff2 q.toJ = 0 →
+      (pairingCheck [(p, q)] = true ↔ e (aff1 p.toJ) (aff2 q.toJ) = 1))
+    (hnondeg : ∀ (a : E1.toAffine.Point) (b : E2.toAffine.Point),
+      R • a = 0 → R • b = 0 → a ≠ 0 → b ≠ 0 → e a b ≠ 1) :
+    PairingOneNonDegenerate := by
+  intro p q hpr hpn hps hqr hqn hqs
+  rw [Bool.eq_false_iff, Ne, hcheck1 p q hpr hpn hps hqr hqn hqs]
+  apply hnondeg _ _ hps hqs
+  · rw [G1A.toJ, Point.toAffine_some (by rw [← G1A.toJ]; exact hpn)]
+    exact Affine.Point.some_ne_zero _
+  · rw [G2A.toJ, Point.toAffine_some (by rw [← G2A.toJ]; exact hqn)]
+    exact Affine.Point.some_ne_zero _
+
+/-- **FastAggregateVerify is EthLib's on every signature**, including the identity's encoding:
+given `MillerLoopsCube` and `PairingOneNonDegenerate`, when EthLib's `hash_to_G2(msg)` under
+Ethereum's DST is not the identity, `fastAggregateVerifyBytes` equals EthLib's
+`fastAggregateVerify` on every key list, message and signature. In the `infinityBytes` case,
+`hashInG2` places `H(m)` in G2, so `PairingOneNonDegenerate` rules out the residual single-pair
+check `(−Σ pkᵢ, H(m))`. -/
+theorem fastAggregateVerifyBytes_eq_eth_of_pairing (hcube : MillerLoopsCube)
+    (hnondeg : PairingOneNonDegenerate) (pks : Array ByteArray) (msg sig : ByteArray)
+    (hH : ∀ q, EthLib.Cryptography.Bls.HashToCurve.hashToG2 msg
+      EthLib.Cryptography.Bls.Signatures.DST = .ok q → q.isInfinity = false) :
+    fastAggregateVerifyBytes pks msg sig =
+      EthLib.Cryptography.Bls.Signatures.fastAggregateVerify pks msg sig := by
+  by_cases hsig : sig = EthLib.Cryptography.Bls.G2.infinityBytes
+  · subst hsig
+    rw [fastAggregateVerifyBytes_identitySig, fastAggregateVerify_eth_identitySig hcube pks msg hH]
+    rw [Array.mapM_eq_mapM_toList]
+    have hks := mapM_keyValidate?_mem pks.toList
+    have hksub := mapM_keyValidate?_sub pks.toList
+    cases hm : pks.toList.mapM keyValidate? with
+    | none => rfl
+    | some ks =>
+      have hks' := hks ks hm
+      have hksub' := hksub ks hm
+      rw [show (List.toArray <$> some ks) = some ks.toArray from rfl, Option.elim_some]
+      have hagg := aggregate?_spec ks.toArray (by simpa using hks')
+      revert hagg
+      cases aggregate? ks.toArray with
+      | none => intro _; rfl
+      | some agg =>
+        intro hagg
+        obtain ⟨har, han, hae⟩ := hagg
+        rw [Option.elim_some]
+        cases hh : H2C.hashToG2? msg ethDst with
+        | none => rfl
+        | some h =>
+          rw [Option.elim_some]
+          obtain ⟨hhr, hhn⟩ := hashOnCurve _ _ _ hh
+          have hhs := hashInG2 _ _ _ hh
+          obtain ⟨hnr, hnn, hne⟩ := G1A.neg_spec har han
+          have has : R • aff1 agg.toJ = 0 := by
+            rw [hae]
+            exact sum_mem_G1 ks hksub'
+          have hns : R • aff1 agg.neg.toJ = 0 := by
+            rw [hne, neg_nsmul, has, neg_zero]
+          exact (hnondeg agg.neg h hnr hnn hns hhr hhn hhs).symm
+  · exact fastAggregateVerifyBytes_eq_eth hcube pks msg sig hH hsig
 
 end LeanLight.Lc.Bls

@@ -1,4 +1,5 @@
 import LeanLightProofs.Anchor
+import LeanLightProofs.Bls.CofactorPrimes
 import LeanLightProofs.Bls.Curves
 import LeanLightProofs.Bls.Decompress
 import LeanLightProofs.Bls.EthCurves
@@ -14,6 +15,7 @@ import LeanLightProofs.Bls.Primes
 import LeanLightProofs.Bls.Provenance
 import LeanLightProofs.Bls.Roundtrip
 import LeanLightProofs.Bls.Scott
+import LeanLightProofs.Bls.Torsion
 import LeanLightProofs.Bls.Tower
 import LeanLightProofs.Bls.ValueEq
 import LeanLightProofs.Driver

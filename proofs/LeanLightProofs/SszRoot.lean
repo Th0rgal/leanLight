@@ -1,4 +1,6 @@
+import LeanLight.Forks
 import LeanLight.Ssz.Containers
+import LeanLight.Ssz.Frame
 import LeanLightProofs.SszMerkle
 import LeanLightProofs.Vendor.SszSpecs.Ssz.Proofs.Codec.RootLaws
 import LeanLightProofs.Vendor.SszSpecs.Ssz.Proofs.Codec.Canonicality
@@ -9,7 +11,8 @@ import LeanLightProofs.SszGindex
 
 For each light-client container, `LeanLight.Ssz`'s `root` of a typed value is ssz-specs'
 `hashTreeRoot` of the value it denotes (`toValue`) at the container's `Desc`, transcribed here
-from consensus-specs v1.7.0-beta.4: `BeaconBlockHeader.root_eq` and the rest. Each holds of a
+from consensus-specs v1.7.0-beta.4: `BeaconBlockHeader.root_eq` and the rest, with `ForkData`
+(`forkDataRoot_eq`) and `SigningData` (`signingRoot_eq`). Each holds of a
 value that fits its type (`Fits`: integers below 2⁶⁴, roots of 32 bytes, 512 keys of 48 bytes, at
 most 32 bytes of `extra_data`, branches of the type's length), which every value the decoders
 return does (`LeanLightProofs.SszDecode`).
@@ -728,5 +731,38 @@ theorem Gloas.OptimisticUpdate.root_eq (u : Gloas.OptimisticUpdate) (hf : u.Fits
       rfl) (by simp)]
   simp only [root, subtree_data _ 2 (by decide)]
   simp [nodes, depthFor]
+
+/-! ## `ForkData` and `SigningData` -/
+
+/-- `ForkData` (`phase0/beacon-chain.md`). -/
+def forkDataDesc : Desc :=
+  .container ["current_version", "genesis_validators_root"] [.byteVector 4, bytes32]
+
+/-- `SigningData` (`phase0/beacon-chain.md`). -/
+def signingDataDesc : Desc :=
+  .container ["object_root", "domain"] [bytes32, bytes32]
+
+/-- `forkDataRoot` is `hash_tree_root(ForkData(current_version, genesis_validators_root))`. -/
+theorem forkDataRoot_eq (version gvr : ByteArray) (hv : version.size = 4) (hg : gvr.size = 32) :
+    hashTreeRoot forkDataDesc (.seq [.bytes version.data, .bytes gvr.data]) =
+      .ok (forkDataRoot version gvr).data := by
+  rw [forkDataDesc, htr_container _ _ _ [(bytesRoot version 0).data, gvr.data] rfl (by
+      simp only [List.zip, List.zipWith, List.mapM_cons, List.mapM_nil,
+        htr_bytes version 4 0 hv (by simp [depthFor]) (by decide), htr_root32 gvr hg]
+      rfl) (by simp)]
+  have := subtree_data #[bytesRoot version 0, gvr] 1 (by decide) 0
+  simpa [forkDataRoot, subtree, nodes, depthFor] using this.symm
+
+/-- `Forks.signingRoot` is `hash_tree_root(SigningData(object_root, domain))`. -/
+theorem signingRoot_eq (objectRoot domain : ByteArray) (ho : objectRoot.size = 32)
+    (hd : domain.size = 32) :
+    hashTreeRoot signingDataDesc (.seq [.bytes objectRoot.data, .bytes domain.data]) =
+      .ok (Forks.signingRoot objectRoot domain).data := by
+  rw [signingDataDesc, htr_container _ _ _ [objectRoot.data, domain.data] rfl (by
+      simp only [List.zip, List.zipWith, List.mapM_cons, List.mapM_nil,
+        htr_root32 objectRoot ho, htr_root32 domain hd]
+      rfl) (by simp)]
+  have := subtree_data #[objectRoot, domain] 1 (by decide) 0
+  simpa [Forks.signingRoot, subtree, nodes, depthFor] using this.symm
 
 end LeanLight.Lc.Ssz

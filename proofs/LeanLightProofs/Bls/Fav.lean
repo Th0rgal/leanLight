@@ -13,8 +13,8 @@ signature passes its checks as a point `σ` (on `E'`, `[r]σ = O`, not the ident
 
 (`fastAggregateVerify_iff`, and `fastAggregateVerifyBytes_iff` over the keys' bytes), for any
 map `e` from the points of `E` and `E'` to a commutative group that is additive in its first
-argument on G1 × G2, given three hypotheses, never axioms (the first and third H_vec's,
-`docs/spec-16-light-client.md`; the second proved since):
+argument on G1 × G2, given three hypotheses, never axioms (the first H_vec's,
+`docs/spec-16-light-client.md`; the other two proved since):
 
 * `PairingCheckIs e`: on reduced points of the subgroups G1 of `E` and G2 of `E'` (`[r]P = O`,
   `[r]Q = O`), the runtime's `pairingCheck` of two pairs is true exactly when the product of
@@ -24,11 +24,12 @@ argument on G1 × G2, given three hypotheses, never axioms (the first and third 
   and the additivity of `e` are over the subgroups only: over every point of `E(𝔽_p)` and
   `E'(𝔽_{p²})` no `e` satisfies both (the runtime's check is not bilinear off G2), and a theorem
   taking them there would be vacuous.
-* `HashOnCurve`: what `hash_to_G2` returns is a reduced point of `E'`. Since LC4b's rest a
-  theorem (`hashOnCurve`, `LeanLightProofs.Bls.HashCurve`), so `fastAggregateVerify_iff_pairing`
-  and `fastAggregateVerifyBytes_iff_pairing` there state these without it.
-* `HashInG2`: that point is in G2, `[r]H = O` (`clear_cofactor`'s `[h_eff]` lands in G2). Not
-  proved: H_vec's, checked by vectors.
+* `HashOnCurve`: what `hash_to_G2` returns is a reduced point of `E'`. Proved (`hashOnCurve`,
+  `LeanLightProofs.Bls.HashCurve`).
+* `HashInG2`: that point is in G2, `[r]H = O` (`clear_cofactor`'s `[h_eff]` lands in G2). Proved
+  (`hashInG2`, `LeanLightProofs.Bls.HashCurve`, from `#E'(𝔽_{p²}) = h₂ · r` in
+  `LeanLightProofs.Bls.Torsion`), so `fastAggregateVerify_iff_pairing` and
+  `fastAggregateVerifyBytes_iff_pairing` state these with `PairingCheckIs e` alone.
 
 The hypotheses take `Spec.Bn254`'s shape for a pairing (reuse rule D18): the map and its laws are
 variables of the theorem.
@@ -139,11 +140,10 @@ def PairingCheckIs {GT : Type} [CommGroup GT] (e : E1.toAffine.Point → E2.toAf
 def HashOnCurve : Prop :=
   ∀ msg dst h, H2C.hashToG2? msg dst = some h → h.Reduced ∧ E2.Nonsingular h.toJ
 
-/-- H_vec's, not proved: what `hash_to_G2` returns is in G2, `[r]H = O`. `clear_cofactor` is
-`[h_eff]` of a point of `E'` (`hashSum_spec`, `LeanLightProofs.Bls.HashCurve`), and RFC 9380 chooses
-`h_eff` so that `[h_eff]` maps `E'(𝔽_{p²})` into G2; that `[r][h_eff]` kills every point of `E'`
-(the group's order) is not proved here. Checked by vectors (RFC 9380's and Ethereum's
-`hash_to_G2` outputs). A hypothesis of the theorems that take it, never an axiom. -/
+/-- What `hash_to_G2` returns is in G2, `[r]H = O`. `clear_cofactor` is `[h_eff]` of a point of
+`E'` (`hashSum_spec`, `LeanLightProofs.Bls.HashCurve`), `#E'(𝔽_{p²}) = h₂ · r` and `h₂ ∣ h_eff`
+(`card_E2`, `h2_dvd_hEff`, `LeanLightProofs.Bls.Torsion`), so `[r][h_eff]` kills every point of
+`E'(𝔽_{p²})` (`hashInG2`, `LeanLightProofs.Bls.HashCurve`). -/
 def HashInG2 : Prop :=
   ∀ msg dst h, H2C.hashToG2? msg dst = some h → R • aff2 h.toJ = 0
 
@@ -182,10 +182,10 @@ theorem sum_mem_G1 (l : List G1A) (hl : ∀ p ∈ l, R • aff1 p.toJ = 0) :
 
 include he1 in
 /-- **FastAggregateVerify** over keys KeyValidate accepted (reduced points of `E` in G1), given
-H_vec's pairing on G1 × G2 and hash-to-curve (`PairingCheckIs e`, `HashOnCurve`, `HashInG2`) for
-an `e` additive in its first argument on G1 × G2: true exactly when the keys' sum `A` is not the
-identity, the signature's bytes pass its checks as a point `σ`, `hash_to_G2(msg)` under
-Ethereum's DST is a point `H`, and `e(g₁, σ) = e(A, H)`. -/
+`PairingCheckIs e`, `HashOnCurve` (discharged by `hashOnCurve`), and `HashInG2` (discharged by
+`hashInG2`) for an `e` additive in its first argument on G1 × G2: true exactly when the keys' sum
+`A` is not the identity, the signature's bytes pass its checks as a point `σ`, `hash_to_G2(msg)`
+under Ethereum's DST is a point `H`, and `e(g₁, σ) = e(A, H)`. -/
 theorem fastAggregateVerify_iff (hcheck : PairingCheckIs e) (hhash : HashOnCurve)
     (hg2 : HashInG2) (pks : Array G1A)
     (hpks : ∀ p ∈ pks.toList, p.Reduced ∧ E1.Nonsingular p.toJ ∧ R • aff1 p.toJ = 0)
